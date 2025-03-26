@@ -1,13 +1,46 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
-
 export function loadLuaFile(dirname, filename) {
   const file = path.resolve(dirname, "lua", filename)
   if (!existsSync(file)) {
+    return null
+  }
+
+  let content = readFileSync(file, {encoding: "utf-8"})
+  content = content.replaceAll(new RegExp("--.*?[\r\n]", "g"), "\n")
+  content = " ".concat(content.split())
+  content = content.replaceAll("\n", " ")
+  return content
+}
+
+const world_active_string = "World generated on build"
+const rollback_sent_string = "Received world rollback request"
+const token_invalid_string = "E_INVALID_TOKEN"
+const token_expired_string = "E_EXPIRED_TOKEN"
+
+/**
+ * @param {Shard} shard 
+ * @param {String} stdout_chunk 
+ */
+export function handleShardOutput(shard, stdout_chunk) {
+  if (stdout_chunk === null || stdout_chunk === undefined) {
     return
   }
 
-  const content = readFileSync(file, {encoding: "utf-8"})
-  return content
+  if (stdout_chunk.includes(world_active_string)) {
+    shard.onWorldActive()
+  }
+
+  if (stdout_chunk.includes(rollback_sent_string)) {
+    shard.onRollback()
+  }
+
+  if (stdout_chunk.includes(token_expired_string)) {
+    // todo
+  }
+
+  if (stdout_chunk.includes(token_invalid_string)) {
+    // todo
+  }
 }

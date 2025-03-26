@@ -4,13 +4,36 @@ import path from "node:path"
 import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
-import { loadLuaFile } from "./helper.mjs"
+import { handleShardOutput, loadLuaFile } from "./helper.mjs"
+import { dirname } from "./constants.mjs"
 
 export class Shard {
   constructor() {
     this.process = null
     this.interval_task = null
     this.events = new Stream.EventEmitter()
+  }
+
+  /**
+   * @param {String} data 
+   */
+  emitStdout(data) {
+    if (this.events) {
+      this.events.emit("stdout", this, data)
+    }
+  }
+
+  /**
+   * @param {Boolean} is_running 
+   * @param {Boolean} is_online 
+   */
+  emitProcessUpdate(is_running, is_online) {
+    if (this.events) {
+      this.events.emit("process_updated", {
+        is_running,
+        is_online
+      })
+    }
   }
 
   /**
@@ -63,10 +86,12 @@ export class Shard {
 
     this.process.stdout.on("data", (chunk) => {
       const data = new Buffer.from(chunk).toString("utf-8")
-      this.events.emit("stdout", this, data)
+      this.emitStdout(data)
     })
 
-    this.process.addListener("close", this.onClosed)
+    this.process.addListener("close", (code, signal) => {
+      this.onClosed(code, signal)
+    })
     this.process.addListener("error", (err) => {
       console.error(err)
     })
@@ -77,37 +102,59 @@ export class Shard {
    * @param {NodeJS.Signals | null} signal
    */
   onClosed(code, signal) {
-    console.log("shard closed with code: ", code, " by signal: ", signal)
-    
     this.process = null
+
+    this.emitStdout(`shard closed with code: ${code} by signal: ${signal}`)
+    this.emitProcessUpdate(this.isRunning(), false)
   }
 
   stop() {
     if (!this.isRunning()) {
       return
     }
-
+    
     this.sendCommand("c_shutdown(true)")
   }
-
+  
   sendCommand(cmd) {
     if (!this.isRunning()) {
       console.log("cannot send command process isn't running")
       return
     }
-
+    
     try {
       const formatted = cmd + "\n"
       const stdin = this.process.stdin
 
-      if (stdin.writable && !stdin.writableNeedDrain) {
-        stdin.write(formatted)
-      } else {
-        throw Error("write stream is non writable")
-      }
+      if (Buffer.from(formatted).byteLength >= stdin.writableHighWaterMark) {
+        throw Error("written chunk is too large. overflowing shard write buffer of size: "
+          +stdin.writableHighWaterMark+"bytes")
+        }
+        
+        if (stdin.writable && !stdin.writableNeedDrain) {
+          stdin.write(formatted)
+        } else {
+          throw Error("write stream is non writable")
+        }
     } catch (err) {
       console.error(err.message)
     }
+  }
+  
+  onWorldActive() {
+    this.emitStdout("world is online")
+    this.emitProcessUpdate(this.isRunning(), true)
+    
+    if (this.is_master) {
+      this.sendCommand(loadLuaFile(dirname, "worlddata.lua"))
+      this.sendCommand(loadLuaFile(dirname, "custom_cmds.lua"))
+    }
+    
+    this.stop()
+  }
+  
+  onRollback() {
+    this.emitProcessUpdate(this.isRunning(), false)
   }
 }
 
@@ -154,13 +201,6 @@ export class Cluster {
         this.master = shard
       }
     }
-    // setTimeout(() => {
-    //   this.stop()
-    // }, 60 * 1000);
-
-    if (this.master) {
-      this.master.sendCommand(loadLuaFile(dirname, "worlddata.lua"))
-    }
 
     return this
   }
@@ -169,6 +209,17 @@ export class Cluster {
     for (const shard of this.shards) {
       shard.start()
     }
+
+    // setTimeout(() => {
+    //   if (this.master) {
+    //     this.master.sendCommand(loadLuaFile(dirname, "worlddata.lua"))
+    //   }
+    // }, 60 * 1000);
+    
+    // setTimeout(() => {
+    //   this.stop()
+    // }, 120 * 1000);
+
   }
 
   stop() {
@@ -193,6 +244,7 @@ export class Cluster {
    */
   onShardStdout(shard, data) {
     // temporary stdout to server console
+    handleShardOutput(shard, data)
     console.log("("+shard.shard_name+"): ", data)
   }
 }
