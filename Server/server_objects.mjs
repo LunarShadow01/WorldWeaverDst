@@ -5,6 +5,7 @@ import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
 import { loadLuaFile } from "./helper.mjs"
+import { dirname } from "./index.mjs"
 
 export class Shard {
   constructor() {
@@ -15,13 +16,19 @@ export class Shard {
 
   /**
    * @param {String} shard_name 
+   * @param {Boolean} is_master    
+   * @param {String} game_dir 
+   * @param {String} clusters_dir
+   * @param {String} cluster_name
+   * @param {String} cluster_token
    * @returns {Shard}
    */
   setup(
     shard_name,
     is_master,
     game_dir,
-    cluster_dir,
+    clusters_dir,
+    cluster_name,
     cluster_token
   ) {
     /**@type {String} */
@@ -32,7 +39,9 @@ export class Shard {
     /**@type {String} */
     this.game_dir = game_dir
     /**@type {String} */
-    this.cluster_dir = cluster_dir
+    this.clusters_dir = clusters_dir
+    /**@type {String} */
+    this.cluster_name = cluster_name
     /**@type {String} */
     this.cluster_token = cluster_token
 
@@ -48,13 +57,20 @@ export class Shard {
       return
     
     const game_dir = this.game_dir
-    const cluster_dir = this.cluster_dir
+    const clusters_dir = this.clusters_dir
+    const cluster_name = this.cluster_name
     const token = this.cluster_token
 
     const cwd = path.resolve(game_dir, "bin64")
     let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
 
-    const args = `-cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
+    const args = `
+    -cluster ${cluster_name}
+    -shard ${this.shard_name}
+    -token ${token}
+    -persistent_storage_root ${clusters_dir}
+    -monitor_parent_process ${pid}
+    `
     this.process = spawn(exe, args.split(" "), {
       cwd: cwd,
       serialization: "json",
@@ -122,17 +138,20 @@ export class Cluster {
   /**
    * @param {String[]} shard_codes 
    * @param {String} game_dir 
-   * @param {String} cluster_dir 
+   * @param {String} clusters_dir 
+   * @param {String} cluster_name 
    * @returns {Cluster}
    */
   setup(
     shard_codes,
     game_dir,
-    cluster_dir,
+    clusters_dir,
+    cluster_name,
     cluster_token
   ) {
     this.game_dir = game_dir
-    this.cluster_dir = cluster_dir
+    this.clusters_dir = clusters_dir
+    this.cluster_name = cluster_name
     this.cluster_token = cluster_token
     if (!existsSync(game_dir)) {
       throw Error("game directory or cluster directory cannot be found")
@@ -144,7 +163,8 @@ export class Cluster {
         shard_code,
         is_master,
         game_dir,
-        cluster_dir,
+        clusters_dir,
+        cluster_name,
         cluster_token
       )
       shard.events.addListener("stdout", this.onShardStdout)
