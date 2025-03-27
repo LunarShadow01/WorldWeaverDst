@@ -1,0 +1,34 @@
+@import "tailwindcss";
+/* @import "tailwindcss/preflight" */
+
+/* @tailwind preflight; */
+@tailwind utilities;
+
+#root {
+  width: 100%;
+}
+
+@layer base {
+  .light {
+    --text: #03210e;
+    --background: #f1fef4;
+    --primary: #0c7e2a;
+    --secondary: #60dff0;
+    --accent: #158fe0;
+  }
+  :root {
+    --text: #defce9;
+    --background: #010e04;
+    --primary: #81f39f;
+    --secondary: #0f8e9f;
+    --accent: #1f99ea;
+  }
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-text: var(--text);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+}
