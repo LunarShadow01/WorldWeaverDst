@@ -1,5 +1,5 @@
 import { configDotenv } from "dotenv";
-import mongoose, { model, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 configDotenv()
 
@@ -10,7 +10,7 @@ const DB_NAME = process.env.DB_NAME
 const connection_url = process.env.CONNECTION_URL || ""
 
 const connection_uri =`mongodb://${DB_ADMIN_USER}:${DB_ADMIN_PWD}@${connection_url}/?authMechanism=DEFAULT`;
-const mongoose_db = await mongoose.connect(connection_uri, {dbName: process.env.DB_NAME})
+const mongoose_db = await mongoose.connect(connection_uri, {dbName: DB_NAME})
 
 const users_auth = new Schema({
   username: {type: String, required: true},
@@ -20,7 +20,7 @@ const users_auth = new Schema({
   creation_date: {type: Date, required: true},
 })
 
-const usersAuth = model("auth", users_auth)
+export const usersAuth = mongoose_db.model("auth", users_auth)
 
 export default mongoose_db
 
