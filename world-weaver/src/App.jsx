@@ -11,6 +11,7 @@ function App() {
         <Routes>
           <Route path='/Components' element={<Components/>}/>
           <Route path='/' element={<Main/>}/>
+          <Route path='/manager/:manager_ip' element={<Main/>}/>
         </Routes>
       </Router>
     </div>
