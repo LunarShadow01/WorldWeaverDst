@@ -84,17 +84,32 @@ function HubMain({socket}) {
   }, [manager_ip])
   
   return (
-    <div>
-      {server_entries.map((server_entry, i) => {
-        return <ServerEntry
-          key={i}
-          manager_ip={manager_ip}
-          server_name={server_entry.server_name}
-          cur_player_count={server_entry.cur_player_count}
-          max_player_count={server_entry.max_player_count}
-          is_running={server_entry.is_running}
-          />
-      })}
+    <div className='flex flex-col items-center justify-center w-full gap-y-2'>
+      <div className='flex items-center justify-center
+        bg-secondary p-4 w-full rounded-b-lg font-bold'>Servers list</div>
+      <div className='lg:grid grid-cols-3 max-lg:flex flex-col
+        items-center justify-center gap-2
+        lg:w-fit max-lg:w-full px-2'>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        <ServerEntry/>
+        {server_entries.map((server_entry, i) => {
+          return <ServerEntry
+            key={i}
+            manager_ip={manager_ip}
+            server_name={server_entry.server_name}
+            cur_player_count={server_entry.cur_player_count}
+            max_player_count={server_entry.max_player_count}
+            is_running={server_entry.is_running}
+            />
+          })}
+      </div>
     </div>
   )
 }

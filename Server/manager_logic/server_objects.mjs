@@ -4,7 +4,7 @@ import path from "node:path"
 import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
-import { handleShardOutput, loadLuaFile } from "./helper.mjs"
+import { handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
 import { dirname } from "./constants.mjs"
 
 export class Shard {
@@ -164,6 +164,9 @@ export class Cluster {
     this.shards = []
     /**@type {Shard | null} */
     this.master = null
+
+    /**@type {Number} */
+    this.id = IdManager.getNewID()
   }
 
   /**
@@ -205,21 +208,25 @@ export class Cluster {
     return this
   }
 
+  isRunning() {
+    return (this.master && this.master.isRunning())
+  }
+
   start() {
     for (const shard of this.shards) {
       shard.start()
     }
+  }
 
-    // setTimeout(() => {
-    //   if (this.master) {
-    //     this.master.sendCommand(loadLuaFile(dirname, "worlddata.lua"))
-    //   }
-    // }, 60 * 1000);
-    
-    // setTimeout(() => {
-    //   this.stop()
-    // }, 120 * 1000);
-
+  /**
+   * @param {String[]} shard_names 
+   */
+  startOnly(shard_names) {
+    for (const shard of this.shards) {
+      if (shard.shard_name in shard_names) {
+        shard.start()
+      }
+    }
   }
 
   stop() {

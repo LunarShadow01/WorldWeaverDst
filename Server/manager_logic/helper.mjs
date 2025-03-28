@@ -1,6 +1,15 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
+export class IdManager {
+  static count = 0;
+
+  static getNewID() {
+    IdManager.count++
+    return IdManager.count
+  }
+}
+
 export function loadLuaFile(dirname, filename) {
   const file = path.resolve(dirname, "lua", filename)
   if (!existsSync(file)) {
