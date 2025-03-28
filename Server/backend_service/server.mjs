@@ -1,7 +1,17 @@
-import {Server} from 'socket.io'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import { generateUserToken, isValidToken } from './auth.mjs'
 
-const io = new Server(4000)
+const http_server = createServer()
+const io = new Server(http_server, {
+  cors: {
+    origin: "anonymous"
+  }
+})
+
+http_server.listen(4000)
+
+// const io = new Server(4000)
 
 io.on("connection", (socket) => {
   io.on("verify_token", ({user_token}) => {
@@ -11,6 +21,17 @@ io.on("connection", (socket) => {
   io.on("login", ({email, password}) => {
     const user_token = generateUserToken(email, password)
     socket.emit("new_token", {user_token})
+  })
+
+  io.on("get_servers", ({user_token}) => {
+    if (!isValidToken(user_token)) {
+      socket.emit("error", {message: "token invalid"})
+      return
+    }
+
+    socket.emit("server_entries", {servers: [
+      // push the servers managed by this manager
+    ]})
   })
 
   io.on("subscribe_to_server", ({user_token}) => {

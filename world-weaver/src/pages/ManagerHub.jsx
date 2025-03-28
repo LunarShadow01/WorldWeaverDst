@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Socket } from 'socket.io-client'
 
@@ -42,10 +42,9 @@ export default function ManagerHub() {
     connectTo(manager_ip)
   }, [manager_ip])
 
-  // every time we first render / the socket is reconnected
-  useEffect(async () => {
+  const checkTokenCallback = useCallback( async () => {
   // if we have a valid socket
-  if (socket) {  
+  if (socket) {
     // make sure we have this object in storage
     if (!hasDataKey(tokens_storage_key)) {
       setDataKey(tokens_storage_key, {})
@@ -65,7 +64,7 @@ export default function ManagerHub() {
         
         // if the token is invalid for any reason -> go to login
         if (!res.res) {
-          delete tokens[manager_ip]
+          // delete tokens[manager_ip]
           navigate("/manager/"+manager_ip+"/login")
         }
       } catch (err) {
@@ -76,17 +75,26 @@ export default function ManagerHub() {
     // we expect to have a valid token for making requests with
     setUserToken(tokens[manager_ip])
   }
-  }, [socket])
+  }, [asyncEmit])
 
-  useEffect(async () => {
-    if (socket && user_token) {
-      try {
-        const servers_response = await asyncEmit("get_servers", "server_entries", {user_token}) 
-        setServerEntries(servers_response.servers)
-      } catch (err) {
-        console.error(err)
+  // every time we first render / the socket is reconnected
+  useEffect(() => {
+    checkTokenCallback()
+  }, [asyncEmit])
+
+  useEffect(() => {
+    const getServers = async () => {
+      if (socket && user_token) {
+        try {
+          const servers_response = await asyncEmit("get_servers", "server_entries", {user_token}) 
+          setServerEntries(servers_response.servers)
+        } catch (err) {
+          console.error(err)
+        }
       }
     }
+
+    getServers()
   }, [user_token])
 
   return (
