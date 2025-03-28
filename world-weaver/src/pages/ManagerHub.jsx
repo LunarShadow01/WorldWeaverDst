@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { Socket } from 'socket.io-client'
-
-import { useSocket } from '../context/SocketContext'
-import { getDataKey, hasDataKey, setDataKey } from '../scripts/storage'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useParams, Routes, Route, useLocation } from 'react-router-dom'
+import { io, Socket } from 'socket.io-client'
 
 import ServerEntry from '../components/ServerEntry'
+import ManagerLogin from './ManagerLogin'
+import { getDataKey, hasDataKey, setDataKey } from '../scripts/storage'
 
 const tokens_storage_key = "manager_tokens"
 
@@ -19,84 +18,71 @@ const tokens_storage_key = "manager_tokens"
  */
 export default function ManagerHub() {
   const navigate = useNavigate()
+  const location = useLocation()
   const params = useParams()
   const manager_ip = params.manager_ip
-
-  const [user_token, setUserToken] = useState(null)
-  /**@type {[server_entries: serverEntry[], setServerEntries: React.Dispatch<React.SetStateAction<serverEntry[]>>]}  */
-  const [server_entries, setServerEntries] = useState([])
   
-  /**
-   * @type {{
-   * socket: Socket,
-   * connectTo: (ip: String) => {},
-   * asyncEmit: (
-   *  reqEvent: String,
-   *  resEvent: String,
-   *  data: *
-   *  ) => Promise
-   * }}
-   */
-  const {socket, connectTo, asyncEmit} = useSocket()
-  useEffect(() => {
-    connectTo(manager_ip)
-  }, [manager_ip])
+  const socket = io("ws://"+manager_ip)
+  const [user_token, setUserToken] = useState("")
 
-  const checkTokenCallback = useCallback( async () => {
-  // if we have a valid socket
-  if (socket) {
-    // make sure we have this object in storage
+  useEffect(() => {
     if (!hasDataKey(tokens_storage_key)) {
       setDataKey(tokens_storage_key, {})
     }
-    
+
     const tokens = getDataKey(tokens_storage_key)
     if (!(manager_ip in tokens)) {
-      // if we don't have a token for this manager -> go to login
-      navigate("/manager/"+manager_ip+"/login")
+      navigate(location.pathname+"/login")
     } else {
-      try {
-
-        // if we have a token -> verify it
-        const res = await asyncEmit("verify_token", "token_verified", {
-          user_token: tokens[manager_ip]
-        })
-        
-        // if the token is invalid for any reason -> go to login
-        if (!res.res) {
-          // delete tokens[manager_ip]
-          navigate("/manager/"+manager_ip+"/login")
+      socket.once("token_verified", ({res}) => {
+        if (res) {
+          setUserToken(tokens[manager_ip])
+        } else {
+          navigate(location.pathname+"/login")
         }
-      } catch (err) {
-        console.error(err)
-      }
+      })
+      socket.emit("verify_token",
+        {user_token: tokens[manager_ip]})
     }
-    // if we don't get redirected than
-    // we expect to have a valid token for making requests with
-    setUserToken(tokens[manager_ip])
-  }
-  }, [asyncEmit])
+  }, [manager_ip])
 
-  // every time we first render / the socket is reconnected
+  return (
+    <div>
+      <Routes>
+        <Route path={`/`} element={<HubMain socket={socket}/>}></Route>
+        <Route path={`/login`} element={<ManagerLogin socket={socket} setUserToken={setUserToken}/>}></Route>
+      </Routes>
+    </div>
+  )
+}
+
+/**
+ * @param {Object} props
+ * @param {Socket} props.socket 
+ * @returns 
+ */
+function HubMain({socket}) {
+  const params = useParams()
+  const manager_ip = params.manager_ip
+
+  /**
+   * @type {[
+   *   server_entries: serverEntry[],
+   *   setServerEntries: React.Dispatch<React.SetStateAction<serverEntry[]>>
+   * ]} 
+   */
+  const [server_entries, setServerEntries] = useState([])
+  
   useEffect(() => {
-    checkTokenCallback()
-  }, [asyncEmit])
+    const tokens = getDataKey(tokens_storage_key)
+    const user_token = tokens[manager_ip]
 
-  useEffect(() => {
-    const getServers = async () => {
-      if (socket && user_token) {
-        try {
-          const servers_response = await asyncEmit("get_servers", "server_entries", {user_token}) 
-          setServerEntries(servers_response.servers)
-        } catch (err) {
-          console.error(err)
-        }
-      }
-    }
-
-    getServers()
-  }, [user_token])
-
+    socket.once("server_entries", ({servers}) => {
+      setServerEntries(servers)
+    })
+    socket.emit("get_servers", {user_token})    
+  }, [manager_ip])
+  
   return (
     <div>
       {server_entries.map((server_entry, i) => {

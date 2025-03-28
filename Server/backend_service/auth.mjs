@@ -188,7 +188,7 @@ export const createUser = async (username, email, password) => {
  * @returns {Boolean}
  */
 export const verifyUser = (user_doc, password) => {
-  if (user_doc === null) {
+  if (user_doc === null || user_doc === undefined) {
     return false
   }
 

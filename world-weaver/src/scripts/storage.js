@@ -1,4 +1,6 @@
 
+export const tokens_storage_key = "world_weaver_tokens"
+
 function encodeData(data) {
   var json_string = JSON.stringify(data)
   return encodeURIComponent(json_string)

@@ -16,8 +16,7 @@ function App() {
         <Routes>
           <Route path='/Components' element={<Components/>}/>
           <Route path='/' element={<Main/>}/>
-          <Route path='/manager/:manager_ip' element={<ManagerHub/>}/>
-          <Route path='/manager/:manager_ip/login' element={<ManagerLogin/>}/>
+          <Route path='/manager/:manager_ip/*' element={<ManagerHub/>}/>
         </Routes>
       </Router>
     </div>
