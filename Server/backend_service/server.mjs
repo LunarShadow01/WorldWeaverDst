@@ -34,24 +34,23 @@ io.on("connection", (socket) => {
     ]})
   })
 
-  socket.on("subscribe_to_server", ({user_token}) => {
+  socket.on("join_cluster_room", ({user_token, cluster_id, room}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
       return
     }
 
-    // todo
-    // socket.join("")
+    socket.join(cluster_id+"/"+room)
+    
   })
-
-  socket.on("unsubscribe_to_server", ({user_token}) => {
+  
+  socket.on("leave_cluster_room", ({user_token, cluster_id, room}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
       return
     }
-
-    // todo
-    // socket.leave("")
+    
+    socket.leave(cluster_id+"/"+room)
   })
 
   socket.on("send_server_action", ({user_token, action}) => {
