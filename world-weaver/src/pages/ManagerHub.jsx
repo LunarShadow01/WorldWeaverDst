@@ -18,7 +18,6 @@ const tokens_storage_key = "manager_tokens"
  */
 export default function ManagerHub() {
   const navigate = useNavigate()
-  const location = useLocation()
   const params = useParams()
   const manager_ip = params.manager_ip
   
@@ -32,13 +31,13 @@ export default function ManagerHub() {
 
     const tokens = getDataKey(tokens_storage_key)
     if (!(manager_ip in tokens)) {
-      navigate(location.pathname+"/login")
+      navigate(`/manager/${manager_ip}/login`)
     } else {
       socket.once("token_verified", ({res}) => {
         if (res) {
           setUserToken(tokens[manager_ip])
         } else {
-          navigate(location.pathname+"/login")
+          navigate(`/manager/${manager_ip}/login`)
         }
       })
       socket.emit("verify_token",

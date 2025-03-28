@@ -2,6 +2,7 @@ import React from 'react'
 import Button from '../components/Button'
 import SelectField from '../components/SelectField'
 import InputField from '../components/InputField'
+import Console from '../components/Console'
 
 export default function Components() {
   return (
@@ -17,6 +18,7 @@ export default function Components() {
             {label: "test 4", value: 3},
           ]}></SelectField>
         <InputField label='input' placeholder='your input' default_value='empty' type='text'></InputField>
+        <Console></Console>
       </div>
     </div>
   )

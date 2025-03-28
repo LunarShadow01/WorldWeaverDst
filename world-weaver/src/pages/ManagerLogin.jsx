@@ -41,6 +41,7 @@ export default function ManagerLogin({
       const tokens = getDataKey(tokens_storage_key)
       tokens[manager_ip] = user_token
 
+      setDataKey(tokens_storage_key, tokens)
       setUserToken(user_token)
       navigate("/manager/"+manager_ip)
     }
