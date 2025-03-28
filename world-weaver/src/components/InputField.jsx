@@ -25,7 +25,7 @@ export default function InputField({
   
   return (
     <div className="flex justify-center items-start w-full gap-x-1">
-      <label className="text-text bg-secondary p-2 rounded-l-lg">
+      <label className="text-text bg-secondary p-2 rounded-l-lg w-fit whitespace-nowrap">
         {label}:</label>
       <input className="text-text placeholder-text
         placeholder:opacity-50 w-full
