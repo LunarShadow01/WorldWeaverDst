@@ -55,12 +55,13 @@ export default function SelectField({options=[], label="undefined", setValue=nul
   }, [selected_memo, setNewValue])
 
   return (
-    <div className='flex justify-center items-start w-fit'>
+    <div className='flex justify-center items-start w-full'>
       <div className='flex justify-center items-center gap-1'>
         <label className='h-full text-text bg-secondary p-2 rounded-l-lg
         flex items-center justify-center'>{label}:</label>
         <div className='flex h-full rounded-r-lg bg-secondary
-          text-text p-2 relative'
+          text-text p-2 relative
+          hover:bg-accent transition-all duration-150'
           onClick={() => {setIsOpen(!is_open)}}>
           <div className='flex justify-between items-center w-full gap-x-2'>
             <div className='grid grid-cols-1 grid-rows-1 items-center justify-center'>
@@ -72,7 +73,7 @@ export default function SelectField({options=[], label="undefined", setValue=nul
             </div>
           </div>
           <div className={`${is_open ? "" : "hidden"} absolute top-0 left-0 translate-y-1/3
-            w-full h-fit bg-secondary rounded-lg`}>
+            w-full h-fit bg-secondary rounded-lg shadow-lg shadow-background`}>
             <div className='flex flex-col grow w-full justify-start items-center gap-2 p-2'>
               {options.map((elm, i) => {
                 return (
