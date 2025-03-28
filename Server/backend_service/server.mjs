@@ -4,6 +4,10 @@ import { generateUserToken, isValidToken } from './auth.mjs'
 const io = new Server(4000)
 
 io.on("connection", (socket) => {
+  io.on("verify_token", ({user_token}) => {
+    socket.emit("token_verified", {res: isValidToken(user_token)})
+  })
+
   io.on("login", ({email, password}) => {
     const user_token = generateUserToken(email, password)
     socket.emit("new_token", {user_token})
