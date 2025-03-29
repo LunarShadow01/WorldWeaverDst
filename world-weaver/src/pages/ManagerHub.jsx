@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client'
 import ServerEntry from '../components/ServerEntry'
 import ManagerLogin from './ManagerLogin'
 import { getDataKey, hasDataKey, setDataKey } from '../scripts/storage'
+import ServerPage from './ServerPage'
 
 const tokens_storage_key = "manager_tokens"
 
@@ -19,7 +20,7 @@ const tokens_storage_key = "manager_tokens"
 export default function ManagerHub() {
   const navigate = useNavigate()
   const params = useParams()
-  const manager_ip = params.manager_ip
+  const manager_ip = params.ip
   
   const socket = io("ws://"+manager_ip)
   const [user_token, setUserToken] = useState("")
@@ -50,6 +51,7 @@ export default function ManagerHub() {
       <Routes>
         <Route path={`/`} element={<HubMain socket={socket}/>}></Route>
         <Route path={`/login`} element={<ManagerLogin socket={socket} setUserToken={setUserToken}/>}></Route>
+        <Route path={`/cluster/:id`} element={<ServerPage/>}></Route>
       </Routes>
     </div>
   )
@@ -62,7 +64,7 @@ export default function ManagerHub() {
  */
 function HubMain({socket}) {
   const params = useParams()
-  const manager_ip = params.manager_ip
+  const manager_ip = params.ip
 
   /**
    * @type {[

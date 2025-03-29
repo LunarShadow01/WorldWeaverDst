@@ -17,7 +17,7 @@ export default function ManagerLogin({
 }) {
   const navigate = useNavigate()
   const params = useParams()
-  const manager_ip = params.manager_ip
+  const manager_ip = params.ip
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
