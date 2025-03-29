@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import Button from './Button'
 
@@ -6,6 +6,21 @@ import PublishIcon from '@mui/icons-material/Publish';
 
 export default function Console({console_log, onConsoleSend = () => {}}) {
   const [console_input, setConsoleInput] = useState("")
+
+  const scroll_snap_buffer = 10
+  const div_ref = useRef(null)
+  const messages_container = useRef(null``)
+
+  useEffect(() => {
+    if (div_ref.current) {
+      const scroll_container = div_ref.current.parentElement
+      const size = scroll_container.offsetHeight
+      const position = scroll_container.scrollTop
+      if (size - position < scroll_snap_buffer) {
+        div_ref.current.scrollIntoView()
+      }
+    }
+  }, [console_log, div_ref])
 
   const onEnter = () => {
     console.log("enter sent")
@@ -21,14 +36,20 @@ export default function Console({console_log, onConsoleSend = () => {}}) {
       <div className='grid grid-cols-1 grid-rows-1
         items-end justify-center h-screen
         bg-background rounded-lg w-full grow'>
-        
+          
         <div className='col-start-1 row-start-1
           flex items-start justify-end flex-col
           border-2 border-secondary rounded-lg h-screen
           w-full'>
           <pre className='p-2 overflow-y-scroll
-            whitespace-normal break-words'>
-            {console_log}
+            whitespace-normal break-words w-full'
+            ref={messages_container}>
+              {/* {console_log.map((text, i) => {
+                return <div key={i}>
+                  {text}
+                </div>
+              })} */}
+              <div ref={div_ref}></div>
           </pre>
           <div className='opacity-0 -z-50'>
             <ConsoleInput onEnter={onEnter} setValue={setConsoleInput}/>

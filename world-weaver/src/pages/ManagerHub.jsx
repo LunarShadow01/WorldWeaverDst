@@ -4,10 +4,8 @@ import { io, Socket } from 'socket.io-client'
 
 import ServerEntry from '../components/ServerEntry'
 import ManagerLogin from './ManagerLogin'
-import { getDataKey, hasDataKey, setDataKey } from '../scripts/storage'
+import { getDataKey, hasDataKey, setDataKey, tokens_storage_key } from '../scripts/storage'
 import ServerPage from './ServerPage'
-
-const tokens_storage_key = "manager_tokens"
 
 /**
  * @typedef {{
@@ -31,14 +29,19 @@ export default function ManagerHub() {
     }
 
     const tokens = getDataKey(tokens_storage_key)
-    if (!(manager_ip in tokens)) {
+    if (!(tokens.hasOwnProperty(manager_ip))) {
+      console.log(manager_ip)
+      console.log(tokens)
       navigate(`/manager/${manager_ip}/login`)
+      console.log("could not find token in storage")
     } else {
       socket.once("token_verified", ({res}) => {
         if (res) {
           setUserToken(tokens[manager_ip])
+          console.log("using token from storage")
         } else {
           navigate(`/manager/${manager_ip}/login`)
+          console.log("token from storage could not be verified")
         }
       })
       socket.emit("verify_token",
@@ -91,15 +94,11 @@ function HubMain({socket}) {
       <div className='lg:grid grid-cols-3 max-lg:flex flex-col
         items-center justify-center gap-2
         lg:w-fit max-lg:w-full px-2'>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
-        <ServerEntry/>
+        <ServerEntry manager_ip={manager_ip}/>
+        <ServerEntry manager_ip={manager_ip}/>
+        <ServerEntry manager_ip={manager_ip}/>
+        <ServerEntry manager_ip={manager_ip}/>
+        <ServerEntry manager_ip={manager_ip}/>
         {server_entries.map((server_entry, i) => {
           return <ServerEntry
             key={i}

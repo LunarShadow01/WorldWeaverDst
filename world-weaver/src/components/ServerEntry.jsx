@@ -27,7 +27,7 @@ export default function ServerEntry({
             <div className={`w-full h-4 rounded-full border-2 border-secondary
               ${is_running ? "bg-primary" : "bg-text"}`}/>
             <div className='flex flex-col items-start justify-end'>
-              <Button onClick={() => {navigate(`/manager/${manager_ip}/${server_id}`)}}>
+              <Button onClick={() => {navigate(`/manager/${manager_ip}/cluster/${server_id}`)}}>
                 <div className='text-2xl flex items-center justify-center'>
                   <LoginIcon fontSize='inherit' color='inherit'></LoginIcon>
                 </div>
