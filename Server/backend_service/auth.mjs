@@ -121,9 +121,7 @@ class AuthsUser {
     if (this.validateNewUser()) {
       const users = readUsers()
       users.push(this)
-      console.log(users)
-    } else {
-      console.log("user can't be validated")
+      writeUsers(users)
     }
   }
 }

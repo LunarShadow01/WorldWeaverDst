@@ -1,6 +1,7 @@
 import os from 'node:os'
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { getDataKey } from '../data_writer.mjs';
 
 export class IdManager {
   static count = 0;
@@ -52,6 +53,25 @@ export function handleShardOutput(shard, stdout_chunk) {
 
   if (stdout_chunk.includes(token_invalid_string)) {
     // todo
+  }
+}
+
+export function getBranchInstallDir(branch_name) {
+  return path.resolve(getDataKey("game_files_dir"), branch_name)
+}
+
+export function getSteamCmd() {
+  const steamcmd_dir = getDataKey("steamcmd_dir")
+
+  const platform = os.platform()
+  switch(platform) {
+    case "win32": // windows both 32 and 64 bit
+      return path.resolve(steamcmd_dir, "steamcmd.exe")
+    case "darwin": // macos
+      return path.resolve(steamcmd_dir, "steamcmd.sh")
+    default: // linux and probably unix variants (BSD, etc)
+    case "linux":
+      return path.resolve(steamcmd_dir, "steamcmd.sh")
   }
 }
 
