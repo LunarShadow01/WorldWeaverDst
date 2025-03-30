@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { getBranchInstallDir, getSteamCmd } from "./helper.mjs"
 
-const dst_app_id = 322330
+const dst_app_id = 343050
 const game_branch = "public"
 const steamcmd_file = getSteamCmd()
 const install_dir = getBranchInstallDir(game_branch)
