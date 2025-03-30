@@ -77,10 +77,7 @@ export class Shard {
     const cwd = path.resolve(game_dir, "bin64")
     let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
 
-    const temp_path = "C:/WorkingSpace/Hobbies/Programming/DstDediManager/Server/Temp/"
-
-    const args = `-persistent_storage_root ${temp_path} -conf_dir ${"Servers"}
-      -cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
+    const args = `-cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
     this.process = spawn(exe, args.split(" "), {
       cwd: cwd,
       serialization: "json",

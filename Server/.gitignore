@@ -3,4 +3,3 @@ node_modules
 **/*secret*.txt
 **/users.json
 **/data.json
-**/Temp/*
