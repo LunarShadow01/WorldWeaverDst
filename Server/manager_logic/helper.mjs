@@ -1,3 +1,4 @@
+import os from 'node:os'
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
@@ -52,4 +53,33 @@ export function handleShardOutput(shard, stdout_chunk) {
   if (stdout_chunk.includes(token_invalid_string)) {
     // todo
   }
+}
+
+export function getPersistentDir() {
+  const platform = os.platform()
+  const homedir = os.homedir()
+  console.log(platform)
+
+  switch(platform) {
+    case "win32":
+      return path.resolve(homedir, "My Documents", "Klei")
+    case "darwin":
+      return path.resolve(homedir, "Documents", "Klei")
+    case "linux":
+      return path.resolve(homedir, ".klei")
+    default:
+      // manually insert persistent directory path
+      throw Error("build not configured for os")
+  }
+
+  // console.log(os.version())
+  // console.log(os.homedir())
+  // /**@type {Dir} */
+  // opendir(os.homedir(), (err, dir) => {
+  //   let new_dir = dir.readSync()
+  //   while(new_dir) {
+  //     console.log(new_dir.name)
+  //     new_dir = dir.readSync()
+  //   }
+  // })
 }
