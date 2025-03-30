@@ -49,6 +49,9 @@ function extractBranchesData(app_data) {
   return app_data.data[dst_app_id].depots.branches
 }
 
+/**
+ * @returns {String[]}
+ */
 async function getAvailableBranches() {
   const app_data = await getAppData()
   const branches_data = extractBranchesData(app_data)

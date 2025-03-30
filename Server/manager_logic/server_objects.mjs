@@ -7,6 +7,7 @@ import Stream from "node:stream"
 import { handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
+import { getDataKey } from "../data_writer.mjs"
 
 export class Shard {
   constructor() {
@@ -71,6 +72,17 @@ export class Shard {
     if (this.isRunning())
       return
     
+    // ----- directory modifications
+    const world_weaver_root = getDataKey("world_weaver_root")
+    const persistent_storage_root = 
+      path.resolve(world_weaver_root, "DoNotStarveTogether")
+    const conf_dir = this.branch_name
+    const location_args = `-persistent_storage_root ${persistent_storage_root}`
+      +`-conf_dir ${conf_dir}`
+    
+    const install_dir = path.resolve(world_weaver_root, "game_files", this.branch_name)
+    // -----
+
     const game_dir = this.game_dir
     const cluster_dir = this.cluster_dir
     const token = this.cluster_token

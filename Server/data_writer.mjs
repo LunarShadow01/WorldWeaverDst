@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import os from "node:os"
 
 const data_file = path.resolve(".", "data.json")
 
@@ -7,6 +8,7 @@ function validateStructure() {
   const base_data = {
     "example": "*default*",
     "steamcmd_dir": "",
+    "world_weaver_root": path.resolve(os.homedir(), "WorldWeaverDST"),
     "game_files_dir": "",
     "clusters_dir": "",
     "jwt_secret": "",

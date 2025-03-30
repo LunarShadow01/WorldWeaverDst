@@ -57,7 +57,7 @@ export function handleShardOutput(shard, stdout_chunk) {
 }
 
 export function getBranchInstallDir(branch_name) {
-  return path.resolve(getDataKey("game_files_dir"), branch_name)
+  return path.resolve(getDataKey("world_weaver_root"), "game_files", branch_name)
 }
 
 export function getSteamCmd() {
