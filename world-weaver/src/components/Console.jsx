@@ -4,23 +4,8 @@ import Button from './Button'
 
 import PublishIcon from '@mui/icons-material/Publish';
 
-export default function Console({console_log, onConsoleSend = () => {}}) {
+export default function Console({messages_container, onConsoleSend = () => {}}) {
   const [console_input, setConsoleInput] = useState("")
-
-  const scroll_snap_buffer = 10
-  const div_ref = useRef(null)
-  const messages_container = useRef(null``)
-
-  useEffect(() => {
-    if (div_ref.current) {
-      const scroll_container = div_ref.current.parentElement
-      const size = scroll_container.offsetHeight
-      const position = scroll_container.scrollTop
-      if (size - position < scroll_snap_buffer) {
-        div_ref.current.scrollIntoView()
-      }
-    }
-  }, [console_log, div_ref])
 
   const onEnter = () => {
     console.log("enter sent")
@@ -49,7 +34,6 @@ export default function Console({console_log, onConsoleSend = () => {}}) {
                   {text}
                 </div>
               })} */}
-              <div ref={div_ref}></div>
           </pre>
           <div className='opacity-0 -z-50'>
             <ConsoleInput onEnter={onEnter} setValue={setConsoleInput}/>

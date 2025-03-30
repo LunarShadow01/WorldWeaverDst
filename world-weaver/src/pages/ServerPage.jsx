@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { createElement, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
@@ -10,12 +10,20 @@ export default function ServerPage({socket}) {
   const cluster_id = params.id
 
   const max_console_messages = 50
+  const scroll_snap_buffer = 40
 
   const [is_running, setIsRunning] = useState(false)
   const [console_log, setConsoleLog] = useState([""])
+  const [console_paused, setConsolePaused] = useState(false)
   const [count, setCount] = useState(0)
 
+  const messages_container = useRef(null)
+
   const onConsoleUpdate = ({new_data}) => {
+    if (console_paused) {
+      // backlog update
+      return
+    }
     const new_console_log = []// console_log.copyWithin(console_log.length, 0, console_log.length)
     for (const log of console_log) {
       new_console_log.push(log)
@@ -26,12 +34,48 @@ export default function ServerPage({socket}) {
       new_console_log.shift()
     }
     
+    const current = messages_container.current
+    if (current) {
+      const div = document.createElement("div")
+      div.innerHTML = new_data
+      current.appendChild(div)
+      if (current.childNodes.length > max_console_messages) {
+          current.removeChild(
+            current.firstElementChild
+        )
+      }
+
+      const size = current.scrollHeight
+      const offset = current.offsetHeight
+      const pos = current.scrollTop
+      const diff = Math.abs(size - (pos + offset))
+      if (-scroll_snap_buffer < diff
+        && diff < scroll_snap_buffer) {
+        current.lastElementChild.scrollIntoView()
+      }
+    }
+
     setConsoleLog(new_console_log)
   }
 
   const onSendCommand = (cmd) => {
 
   }
+
+  useEffect(() => {
+    const current = messages_container.current
+    if (current
+      && current.childNodes.length < console_log.length) {
+      current.innerHTML = ""
+      for (const log of console_log) {
+        const div = document.createElement("div")
+        div.innerHTML = log
+        current.appendChild(div)
+      }
+    }
+    
+  }, [console_log, messages_container])
+
 
   // useEffect(() => {
     // setInterval(() => {
@@ -42,10 +86,20 @@ export default function ServerPage({socket}) {
 
   return (
     <div className='grid grid-cols-5 h-full'>
-      <div className='col-start-1 col-span-3 h-full w-full'>
-        <Console console_log={console_log} onConsoleSend={onSendCommand}>
+      <div className='grid grid-cols-1 grid-rows-1
+        col-start-1 col-span-3 h-full w-full'>
+        <div className='col-start-1 row-start-1
+          flex items-start justify-end p-2'>
+            <div className='p-2 w-10 h-10 z-10
+            rounded-full bg-secondary hover:bg-accent
+            hover:scale-110 transition-all duration-150'>
 
-        </Console>
+            </div>
+
+        </div>
+        <div className='col-start-1 row-start-1'>
+          <Console messages_container={messages_container} onConsoleSend={onSendCommand}/>
+        </div>
       </div>
       <div className='flex flex-col p-2
         items-center justify-end w-full h-full'>
