@@ -60,4 +60,4 @@ async function getAvailableBranches() {
   return branches
 }
 
-console.log(await getAvailableBranches())
+// console.log(await getAvailableBranches())

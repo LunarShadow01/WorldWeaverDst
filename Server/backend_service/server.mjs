@@ -40,8 +40,7 @@ io.on("connection", (socket) => {
       return
     }
 
-    socket.join(cluster_id+"/"+room)
-    
+    socket.join("cluster/"+cluster_id+"/"+room)
   })
   
   socket.on("leave_cluster_room", ({user_token, cluster_id, room}) => {
@@ -50,9 +49,10 @@ io.on("connection", (socket) => {
       return
     }
     
-    socket.leave(cluster_id+"/"+room)
+    socket.leave("cluster/"+cluster_id+"/"+room)
   })
 
+  // move definitions outside so manager instance is available in scope
   socket.on("send_server_action", ({user_token, action}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
@@ -62,10 +62,14 @@ io.on("connection", (socket) => {
 
   })
 
-  socket.on("send_server_command", ({user_token, command}) => {
+  socket.on("send_server_command", ({user_token, command, cluster_id}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
       return
     }
+
+    // forward command through the manager class
   })
 })
+
+export default io

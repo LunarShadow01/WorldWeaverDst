@@ -8,7 +8,7 @@ const clusters = []
 function main() {
   // getPersistentDir()
   // const cluster = new Cluster()
-  // .setup(["Master"], game_dir, cluster_dir, cluster_token)
+  // .setup(["Master"], game_dir, cluster_dir, cluster_token, "public")
 
   // cluster.start()
 }

@@ -6,6 +6,7 @@ import Stream from "node:stream"
 
 import { handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
 import { dirname } from "./constants.mjs"
+import { Server, Socket } from "socket.io"
 
 export class Shard {
   constructor() {
@@ -179,11 +180,17 @@ export class Cluster {
     shard_codes,
     game_dir,
     cluster_dir,
-    cluster_token
+    cluster_token,
+    branch_name,
+    io
   ) {
     this.game_dir = game_dir
     this.cluster_dir = cluster_dir
     this.cluster_token = cluster_token
+    this.branch_name = branch_name
+    /**@type {Socket} */
+    this.io = io
+
     if (!existsSync(game_dir)) {
       throw Error("game directory or cluster directory cannot be found")
     }
@@ -250,8 +257,51 @@ export class Cluster {
    * @param {String} data
    */
   onShardStdout(shard, data) {
-    // temporary stdout to server console
     handleShardOutput(shard, data)
+
+    this.io.to("cluster/"+this.id+"/"+"console")
+    .emit({shard, data})
+    
     console.log("("+shard.shard_name+"): ", data)
+  }
+}
+
+export class Manager {
+  /**
+   * @constructor
+   * @param {Server} io 
+   */
+  constructor(io) {
+    /**@type {Cluster[]} */
+    this.clusters = {}
+    this.io = io
+  }
+
+  registerCluster(
+    game_dir,
+    cluster_dir,
+    cluster_token,
+    branch_name,
+    shard_codes,
+  ) {
+    const cluster = new Cluster()
+    .setup(
+      shard_codes,
+      game_dir,
+      cluster_dir,
+      cluster_token,
+      branch_name,
+      this.io
+    )
+
+    this.clusters[cluster.id] = cluster
+  }
+
+  sendCommandToCluster(cmd, cluster_id) {
+    /**@type {Cluster | undefined} */
+    const cluster = this.clusters[cluster_id]
+    if (cluster) {
+      cluster.sendCommand(cmd, true)
+    }
   }
 }
