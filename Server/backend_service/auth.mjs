@@ -1,42 +1,33 @@
 import jwt from 'jsonwebtoken'
 import { compareSync, genSaltSync, hashSync } from 'bcrypt'
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { webcrypto } from 'node:crypto';
-import path from 'node:path';
-
-const users_json_file = path.resolve(".", "backend_service", "users.json")
+import { getDataKey, setDataKey } from '../data_writer.mjs';
 
 /**
- * @returns {{users: AuthsUser[]}}
+ * @returns {AuthsUser[]}
  */
 const readUsers = () => {
-  const json_data = JSON.parse(readFileSync(users_json_file))
-  /**@type {{users: AuthsUser[]}} */
-  const data = {users: []}
-  for (const user_data of json_data.users) {
+  /**@type {AuthsUser[]} */
+  const users = []
+  for (const user_data of getDataKey("users")) {
     const user = new AuthsUser({})
     user.onLoad(user_data)
-    data.users.push(user)
+    users.push(user)
   }
 
-  return data
+  return users
 }
 
 /**
- * @param {{users: AuthsUser[]}} data 
+ * @param {AuthsUser[]} users 
  */
-const writeUsers = (data) => {
-  const json_data = {users: []}
-  for (const user of data.users) {
-    json_data.users.push(user.onSave())
+const writeUsers = (users) => {
+  const saved_users = []
+  for (const user of users) {
+    saved_users.push(user.onSave())
   }
-  writeFileSync(users_json_file, JSON.stringify(json_data, null, " "), {encoding: 'utf-8'})
+  setDataKey("users", saved_users)
 }
-
-if (!existsSync(users_json_file)) {
-  writeUsers({users: []})
-}
-
 
 class AuthsUser {
   /**
@@ -96,11 +87,11 @@ class AuthsUser {
   }
 
   validateNewUser() {
-    const content = readUsers()
+    const users = readUsers()
     const is_valid = 
       this.username.length > 5
       && this.email.length > 5
-      && (content.users.findIndex((user) => {
+      && (users.findIndex((user) => {
         return user.email === this.email
       }) === -1)
       && this.password_hash !== ""
@@ -111,11 +102,11 @@ class AuthsUser {
   }
 
   validateExistingUser() {
-    const content = readUsers()
+    const users = readUsers()
     const is_valid = 
       this.username.length > 5
       && this.email.length > 5
-      && (content.users.findIndex((user) => {
+      && (users.findIndex((user) => {
         return user.email === this.email
       }) !== -1)
       && this.password_hash !== ""
@@ -128,27 +119,26 @@ class AuthsUser {
 
   save() {
     if (this.validateNewUser()) {
-      const content = readUsers()
-      content.users.push(this)
-      console.log(content)
+      const users = readUsers()
+      users.push(this)
+      console.log(users)
     } else {
       console.log("user can't be validated")
     }
   }
 }
 
-const jwt_file = path.resolve(".", "backend_service", "jwt_secret.txt")
-
-let jwt_secret = ""
-if (!existsSync(jwt_file)) {
+const issued_key = "jwt_secret_issued_date"
+const jwt_secret_key = "jwt_secret"
+let jwt_secret = getDataKey(jwt_secret_key)
+if (jwt_secret === "") {
   const arr = webcrypto.getRandomValues(new Uint32Array(20))
   for (const num of arr) {
     jwt_secret += "" + num
   }
-  writeFileSync(jwt_file, jwt_secret, {encoding: "base64"})
-  jwt_secret = readFileSync(jwt_file, {encoding: "base64"})
-} else {
-  jwt_secret = readFileSync(jwt_file, {encoding: "base64"})
+
+  setDataKey(jwt_secret_key, Buffer.from(jwt_secret).toString("base64"))
+  setDataKey(issued_key, Date.now())
 }
 
 export const isValidToken = (token) => {
@@ -201,8 +191,8 @@ export const verifyUser = (user_doc, password) => {
  * @returns {AuthsUser | undefined}
  */
 export const getUserNoValidation = (email) => {
-  const content = readUsers()
-  const user = content.users.find((cur_user) => {
+  const users = readUsers()
+  const user = users.find((cur_user) => {
     return cur_user.email === email
   })
   return user
