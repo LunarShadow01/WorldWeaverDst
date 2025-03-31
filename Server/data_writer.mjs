@@ -9,6 +9,7 @@ function validateStructure() {
     "example": "*default*",
     "steamcmd_dir": "",
     "world_weaver_root": path.resolve(os.homedir(), "WorldWeaverDST"),
+    "branches_data": [],
     "game_files_dir": "",
     "clusters_dir": "",
     "jwt_secret": "",

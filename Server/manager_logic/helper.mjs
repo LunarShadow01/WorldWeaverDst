@@ -60,6 +60,10 @@ export function getBranchInstallDir(branch_name) {
   return path.resolve(getDataKey("world_weaver_root"), "game_files", branch_name)
 }
 
+export function getPersistentStorageRoot() {
+  return path.resolve(getDataKey("world_weaver_root"), "DoNotStarveTogether")
+}
+
 export function getSteamCmd() {
   const steamcmd_dir = getDataKey("steamcmd_dir")
 

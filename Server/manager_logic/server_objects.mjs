@@ -4,7 +4,7 @@ import path from "node:path"
 import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
-import { handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
+import { getPersistentStorageRoot, handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
@@ -74,8 +74,7 @@ export class Shard {
     
     // ----- directory modifications
     const world_weaver_root = getDataKey("world_weaver_root")
-    const persistent_storage_root = 
-      path.resolve(world_weaver_root, "DoNotStarveTogether")
+    const persistent_storage_root = getPersistentStorageRoot()
     const conf_dir = this.branch_name
     const location_args = `-persistent_storage_root ${persistent_storage_root}`
       +`-conf_dir ${conf_dir}`

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { getBranchInstallDir, getSteamCmd } from "./helper.mjs"
+import { getDataKey, setDataKey } from '../data_writer.mjs'
 
 const dst_app_id = 343050
 const game_branch = "public"
@@ -52,9 +53,7 @@ function extractBranchesData(app_data) {
 /**
  * @returns {String[]}
  */
-async function getAvailableBranches() {
-  const app_data = await getAppData()
-  const branches_data = extractBranchesData(app_data)
+function getAvailableBranches(branches_data) {
   const branches = []
   for (const key in branches_data) {
     branches.push(key)
@@ -62,5 +61,55 @@ async function getAvailableBranches() {
 
   return branches
 }
+
+/**
+ * @function
+ * @async
+ * @returns {Promise<Object<string, boolean>>}
+*/
+async function checkForUpdates() {
+  const app_data = await getAppData()
+  const branches_data = extractBranchesData(app_data)
+  const saved_branches_data = getDataKey("branches_data")
+  /**@type {Object<string, boolean>} */ 
+  const update_marks = {}
+
+  for (const branch_name in branches_data) {
+    const branch_data = branches_data[branch_name]
+    const build_id = branch_data.buildid // game version
+    const time_updated = new Date(branch_data.timeupdated * 1000) // update time
+    
+    const update_available = build_id > saved_branches_data[branch_name]?.build_id
+    update_marks[branch_name] = update_available
+    
+    saved_branches_data[branch_name] = {
+      build_id,
+      time_updated
+    }
+  }
+
+  setDataKey("branches_data", saved_branches_data)
+
+  console.log(saved_branches_data)
+  console.log(update_marks)
+
+  return update_marks
+}
+
+function startUpdatesIntervals() {
+  const check_interval = 5 * 60 * 1000 // 5 minutes
+  setInterval(async () => {
+    const update_marks = await checkForUpdates()
+    for (const key in update_marks) {
+      const should_update = update_marks[key]
+      if (should_update) {
+        // mark all clusters of the branch to be updated
+      }
+    }
+  }, check_interval);
+}
+
+// await checkForUpdates()
+// console.log(new Date(1740620277 * 1000))
 
 // console.log(await getAvailableBranches())
