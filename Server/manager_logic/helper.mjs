@@ -1,5 +1,5 @@
 import os from 'node:os'
-import { readFileSync, existsSync, opendirSync, mkdir } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { getDataKey } from '../data_writer.mjs';
 
@@ -106,6 +106,8 @@ export function getClusterDirsInDir(dir_path) {
     dir_entry = dir.readSync()
   }
 
+  dir.close()
+
   return cluster_dirs
 }
 
@@ -127,6 +129,8 @@ export function getShardNamesInCluster(cluster_path) {
 
     dir_entry = dir.readSync()
   }
+
+  dir.close()
   
   return shard_names
 }
@@ -136,14 +140,14 @@ export function makeDefinedDirs() {
   const persistent_storage_root = getPersistentStorageRoot()
   for (const branch_name in branches_data) {
     const install_dir = getBranchInstallDir(branch_name)
-    mkdir(install_dir, {
+    mkdirSync(install_dir, {
       recursive: true
     }, () => {})
 
     const conf_dir = path.resolve(
       persistent_storage_root, branch_name
     )
-    mkdir(conf_dir, {
+    mkdirSync(conf_dir, {
       recursive: true
     }, () => {})
   }
@@ -153,7 +157,7 @@ export function checkDefinedDirs() {
   const branches_data = getDataKey("branches_data")
   const persistent_storage_root = getPersistentStorageRoot()
 
-  const allPathsExist = true
+  let allPathsExist = true
   for (const branch_name in branches_data) {
     const install_dir = getBranchInstallDir(branch_name)
     allPathsExist &= existsSync(install_dir)

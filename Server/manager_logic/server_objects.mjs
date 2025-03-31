@@ -31,6 +31,8 @@ export class Shard {
    * @param {Boolean} is_online 
    */
   emitProcessUpdate(is_running, is_online) {
+    this.is_online = is_online && is_running
+
     if (this.events) {
       this.events.emit("process_updated", {
         is_running,
@@ -353,6 +355,22 @@ export class Manager {
       }
 
     }
+  }
+
+  getClusterEntries() {
+    const entries = []
+    for (const id in this.clusters) {
+      const entry = {}
+      entry.id = id
+      entry.is_running = this.clusters[id].isRunning()
+      entry.is_online = this.clusters[id].is_online
+      entry.name = "placeholder "+id
+      entry.max_players = 20
+      entry.cur_players = 0
+      entries.push(entry)
+    }
+
+    return entries
   }
 
   sendCommandToCluster(cmd, cluster_id) {

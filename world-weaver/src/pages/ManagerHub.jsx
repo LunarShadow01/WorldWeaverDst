@@ -54,7 +54,7 @@ export default function ManagerHub() {
       <Routes>
         <Route path={`/`} element={<HubMain socket={socket}/>}></Route>
         <Route path={`/login`} element={<ManagerLogin socket={socket} setUserToken={setUserToken}/>}></Route>
-        <Route path={`/cluster/:id`} element={<ServerPage/>}></Route>
+        <Route path={`/cluster/:id`} element={<ServerPage socket={socket} user_token={user_token}/>}></Route>
       </Routes>
     </div>
   )
@@ -83,8 +83,9 @@ function HubMain({socket}) {
 
     socket.once("server_entries", ({servers}) => {
       setServerEntries(servers)
+      console.log(servers)  
     })
-    socket.emit("get_servers", {user_token})    
+    socket.emit("get_servers", {user_token})
   }, [manager_ip])
   
   return (
@@ -94,19 +95,15 @@ function HubMain({socket}) {
       <div className='lg:grid grid-cols-3 max-lg:flex flex-col
         items-center justify-center gap-2
         lg:w-fit max-lg:w-full px-2'>
-        <ServerEntry manager_ip={manager_ip}/>
-        <ServerEntry manager_ip={manager_ip}/>
-        <ServerEntry manager_ip={manager_ip}/>
-        <ServerEntry manager_ip={manager_ip}/>
-        <ServerEntry manager_ip={manager_ip}/>
         {server_entries.map((server_entry, i) => {
           return <ServerEntry
             key={i}
             manager_ip={manager_ip}
-            server_name={server_entry.server_name}
-            cur_player_count={server_entry.cur_player_count}
-            max_player_count={server_entry.max_player_count}
+            server_name={server_entry.name}
+            cur_player_count={server_entry.cur_player}
+            max_player_count={server_entry.max_player}
             is_running={server_entry.is_running}
+            server_id={server_entry.id}
             />
           })}
       </div>

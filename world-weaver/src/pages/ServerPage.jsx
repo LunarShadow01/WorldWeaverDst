@@ -3,8 +3,15 @@ import { useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
 import Button from '../components/Button'
+import { io } from 'socket.io-client'
 
-export default function ServerPage({socket}) {
+/**
+ * 
+ * @param {Object} props
+ * @param {Socket} props.socket
+ * @returns 
+ */
+export default function ServerPage({user_token, socket}) {
   const params = useParams()
   // const manager_ip = params.ip
   const cluster_id = params.id
@@ -103,7 +110,13 @@ export default function ServerPage({socket}) {
       </div>
       <div className='flex flex-col p-2
         items-center justify-end w-full h-full'>
-        <Button>
+        <Button onClick={() => {
+          if (is_running) {
+            socket.emit("send_server_action", {user_token, action: "stop", cluster_id})
+          } else {
+            socket.emit("send_server_action", {user_token, action: "start", cluster_id})
+          }
+        }}>
           {is_running ? "shutdown cluster" : "start cluster"}
         </Button>
         <Button onClick={() => {

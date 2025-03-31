@@ -1,6 +1,7 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { generateUserToken, isValidToken } from './auth.mjs'
+import { Manager } from '../manager_logic/server_objects.mjs'
 
 // const http_server = createServer()
 // const io = new Server(http_server, {
@@ -23,17 +24,6 @@ io.on("connection", (socket) => {
     socket.emit("new_token", {user_token})
   })
 
-  socket.on("get_servers", ({user_token}) => {
-    if (!isValidToken(user_token)) {
-      socket.emit("error", {message: "token invalid"})
-      return
-    }
-
-    socket.emit("server_entries", {servers: [
-      // push the servers managed by this manager
-    ]})
-  })
-
   socket.on("join_cluster_room", ({user_token, cluster_id, room}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
@@ -52,14 +42,42 @@ io.on("connection", (socket) => {
     socket.leave("cluster/"+cluster_id+"/"+room)
   })
 
+  
+})
+
+/**
+ * @param {Manager} manager 
+ */
+export function ioConnectManager(manager) {
+  io.on("connection", (socket) => {
   // move definitions outside so manager instance is available in scope
-  socket.on("send_server_action", ({user_token, action}) => {
+  socket.on("get_servers", ({user_token}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
       return
     }
 
+    const servers = manager.getClusterEntries()
 
+    socket.emit("server_entries", {servers})
+  })
+
+  socket.on("send_server_action", ({user_token, action, cluster_id}) => {
+    if (!isValidToken(user_token)) {
+      socket.emit("error", {message: "token invalid"})
+      return
+    }
+
+    switch(action) {
+      case "start":
+        manager.clusters[cluster_id].start()
+      case "stop":
+        manager.clusters[cluster_id].stop()
+      case "save":
+        manager.sendCommandToCluster(`c_save()`, cluster_id)
+      default:
+        manager.sendCommandToCluster(`print("action: \"${action}\" not recognized")`, cluster_id)
+    }
   })
 
   socket.on("send_server_command", ({user_token, command, cluster_id}) => {
@@ -68,8 +86,9 @@ io.on("connection", (socket) => {
       return
     }
 
-    // forward command through the manager class
+    manager.sendCommandToCluster(command, cluster_id)
   })
-})
+  })
+}
 
 export default io
