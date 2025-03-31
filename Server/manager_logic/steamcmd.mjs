@@ -5,9 +5,21 @@ import { getDataKey, setDataKey } from '../data_writer.mjs'
 const dst_app_id = 343050
 const game_branch = "public"
 const steamcmd_file = getSteamCmd()
-const install_dir = getBranchInstallDir(game_branch)
-const launch_args = `+force_install_dir ${install_dir} +login anonymous`
-const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${game_branch}`
+const branch_update_processes = {}
+
+function getArgsForBranch(branch_name) {
+  const install_dir = getBranchInstallDir(branch_name)
+  const launch_args = `+force_install_dir ${install_dir} +login anonymous`
+  const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${branch_name}`
+
+  return {
+    launch_args,
+    update_args
+  }
+}
+// const install_dir = getBranchInstallDir(game_branch)
+// const launch_args = `+force_install_dir ${install_dir} +login anonymous`
+// const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${game_branch}`
 
 function runSteamCmd(cmd) {
   const process = spawn(steamcmd_file, `${cmd} +quit`.split(" "))
@@ -22,11 +34,40 @@ function runSteamCmd(cmd) {
   return process
 }
 
-function updateGame() {
-  runSteamCmd(`${update_args}`)
+export function updateGame(branch) {
+  if (branch_update_processes[branch] !== null) {
+    return createUpdatePromise(branch_update_processes[branch])
+  }
+
+  const {update_args} = getArgsForBranch(branch)
+  const process = runSteamCmd(`${update_args}`)
+  branch_update_processes[branch] = process
+
+  // don't know whether a promise can have 2 resolves
+  const promise = createUpdatePromise(process)
+  promise.then(() => {
+    branch_update_processes[branch] = null
+  })
+  return createUpdatePromise(process)
 }
 
-updateGame()
+function createUpdatePromise(update_process) {
+  return new Promise((resolve, reject) => {
+    const error = []
+
+    update_process.on("error", (err) => {
+      error.push(err.toString())
+    })
+
+    update_process.once("close", (code) => {
+      if (code !== 0) {
+        reject()
+      } else {
+        resolve()
+      }
+    })
+  })
+}
 
 async function getAppData() {
   const response = await fetch(

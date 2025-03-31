@@ -8,6 +8,7 @@ import { getBranchInstallDir, getClusterDirsInDir, getPersistentStorageRoot, get
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
+import { updateGame } from "./steamcmd.mjs"
 
 export class Shard {
   constructor() {
@@ -75,21 +76,17 @@ export class Shard {
     if (this.isRunning())
       return
     
-    // ----- directory modifications
-    const world_weaver_root = getDataKey("world_weaver_root")
+    // const world_weaver_root = getDataKey("world_weaver_root")
     const persistent_storage_root = getPersistentStorageRoot()
     const conf_dir = this.branch_name
     const location_args = `-persistent_storage_root ${persistent_storage_root}`
       +` -conf_dir ${conf_dir}`
     
     const install_dir = getBranchInstallDir(this.branch_name)
-    // -----
-
-    const game_dir = install_dir // this.game_dir
     const cluster_dir = this.cluster_dir
     const token = this.cluster_token
 
-    const cwd = path.resolve(game_dir, "bin64")
+    const cwd = path.resolve(install_dir, "bin64")
     let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
 
     const args = `${location_args} -cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
@@ -230,11 +227,29 @@ export class Cluster {
     return this
   }
 
+  hasNullrenderer() {
+    const install_dir = getBranchInstallDir(this.branch_name)
+    
+    const cwd = path.resolve(install_dir, "bin64")
+    const exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
+
+    return existsSync(exe)
+  }
+
   isRunning() {
     return (this.master && this.master.isRunning())
   }
 
   start() {
+    if (!this.hasNullrenderer()) {
+      updateGame(this.branch_name).then(() => {
+        for (const shard of this.shards) {
+          shard.start()
+        }
+      })
+      return
+    }
+
     for (const shard of this.shards) {
       shard.start()
     }

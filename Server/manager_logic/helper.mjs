@@ -79,35 +79,6 @@ export function getSteamCmd() {
   }
 }
 
-export function getPersistentDir() {
-  const platform = os.platform()
-  const homedir = os.homedir()
-  console.log(platform)
-
-  switch(platform) {
-    case "win32":
-      return path.resolve(homedir, "My Documents", "Klei")
-    case "darwin":
-      return path.resolve(homedir, "Documents", "Klei")
-    case "linux":
-      return path.resolve(homedir, ".klei")
-    default:
-      // manually insert persistent directory path
-      throw Error("build not configured for os")
-  }
-
-  // console.log(os.version())
-  // console.log(os.homedir())
-  // /**@type {Dir} */
-  // opendir(os.homedir(), (err, dir) => {
-  //   let new_dir = dir.readSync()
-  //   while(new_dir) {
-  //     console.log(new_dir.name)
-  //     new_dir = dir.readSync()
-  //   }
-  // })
-}
-
 /**
  * @param {String} dir_path 
  * @returns {String[]}
@@ -176,4 +147,26 @@ export function makeDefinedDirs() {
       recursive: true
     }, () => {})
   }
+}
+
+export function checkDefinedDirs() {
+  const branches_data = getDataKey("branches_data")
+  const persistent_storage_root = getPersistentStorageRoot()
+
+  const allPathsExist = true
+  for (const branch_name in branches_data) {
+    const install_dir = getBranchInstallDir(branch_name)
+    allPathsExist &= existsSync(install_dir)
+
+    const conf_dir = path.resolve(
+      persistent_storage_root, branch_name
+    )
+    allPathsExist &= existsSync(conf_dir)
+
+    if (!allPathsExist) {
+      break;
+    }
+  }
+
+  return allPathsExist
 }
