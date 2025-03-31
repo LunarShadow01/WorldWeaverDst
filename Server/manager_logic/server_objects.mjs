@@ -47,7 +47,8 @@ export class Shard {
     is_master,
     game_dir,
     cluster_dir,
-    cluster_token
+    cluster_token,
+    branch_name
   ) {
     /**@type {String} */
     this.shard_name = shard_name
@@ -60,6 +61,8 @@ export class Shard {
     this.cluster_dir = cluster_dir
     /**@type {String} */
     this.cluster_token = cluster_token
+    /**@type {String} */
+    this.branch_name = branch_name
 
     return this
   }
@@ -77,19 +80,19 @@ export class Shard {
     const persistent_storage_root = getPersistentStorageRoot()
     const conf_dir = this.branch_name
     const location_args = `-persistent_storage_root ${persistent_storage_root}`
-      +`-conf_dir ${conf_dir}`
+      +` -conf_dir ${conf_dir}`
     
-    const install_dir = path.resolve(world_weaver_root, "game_files", this.branch_name)
+    const install_dir = getBranchInstallDir(this.branch_name)
     // -----
 
-    const game_dir = this.game_dir
+    const game_dir = install_dir // this.game_dir
     const cluster_dir = this.cluster_dir
     const token = this.cluster_token
 
     const cwd = path.resolve(game_dir, "bin64")
     let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
 
-    const args = `-cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
+    const args = `${location_args} -cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
     this.process = spawn(exe, args.split(" "), {
       cwd: cwd,
       serialization: "json",
@@ -213,7 +216,8 @@ export class Cluster {
         is_master,
         game_dir,
         cluster_dir,
-        cluster_token
+        cluster_token,
+        this.branch_name
       )
       shard.events.addListener("stdout", this.onShardStdout)
 
@@ -270,8 +274,10 @@ export class Cluster {
   onShardStdout(shard, data) {
     handleShardOutput(shard, data)
 
-    this.io.to("cluster/"+this.id+"/"+"console")
-    .emit({shard, data})
+    if (this.io) {
+      this.io.to("cluster/"+this.id+"/"+"console")
+      .emit({shard, data})
+    }
     
     console.log("("+shard.shard_name+"): ", data)
   }
@@ -281,11 +287,13 @@ export class Manager {
   /**
    * @constructor
    * @param {Server} io 
+   * @param {String} cluster_token
    */
-  constructor(io) {
+  constructor(io, cluster_token) {
     /**@type {Cluster[]} */
     this.clusters = {}
     this.io = io
+    this.cluster_token = cluster_token
   }
 
   registerCluster(
@@ -323,7 +331,7 @@ export class Manager {
         this.registerCluster(
           install_dir,
           cluster_dir,
-          "todo",
+          this.cluster_token,
           branch_name,
           shard_names
         )

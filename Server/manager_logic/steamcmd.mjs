@@ -26,6 +26,8 @@ function updateGame() {
   runSteamCmd(`${update_args}`)
 }
 
+updateGame()
+
 async function getAppData() {
   const response = await fetch(
     `https://api.steamcmd.net/v1/info/${dst_app_id}`,
@@ -108,7 +110,7 @@ function startUpdatesIntervals() {
   }, check_interval);
 }
 
-await checkForUpdates()
+// await checkForUpdates()
 // console.log(new Date(1740620277 * 1000))
 
 // console.log(await getAvailableBranches())

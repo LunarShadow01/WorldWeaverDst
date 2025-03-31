@@ -8,10 +8,12 @@ const clusters = []
 
 function main() {
   // makeDefinedDirs()
-  const manager = new Manager(null)
+  const manager = new Manager(null, cluster_token)
   
   manager.scanAndRegisterClusters()
   console.log(manager.clusters)
+
+  manager.clusters['1'].start()
   // getPersistentDir()
   // const cluster = new Cluster()
   // .setup(["Master"], game_dir, cluster_dir, cluster_token, "public")
