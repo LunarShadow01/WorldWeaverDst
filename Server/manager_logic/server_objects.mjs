@@ -1,10 +1,10 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { existsSync } from "node:fs"
+import { existsSync, opendirSync } from "node:fs"
 import Stream from "node:stream"
 
-import { getPersistentStorageRoot, handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
+import { getBranchInstallDir, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
@@ -306,6 +306,30 @@ export class Manager {
     )
 
     this.clusters[cluster.id] = cluster
+  }
+
+  scanAndRegisterClusters() {
+    const branches_data = getDataKey("branches_data")
+    for (const branch_name in branches_data) {
+      const install_dir = getBranchInstallDir(branch_name)
+      const branch_conf_dir = path.resolve(getPersistentStorageRoot(), branch_name)
+      const cluster_dirs = getClusterDirsInDir(branch_conf_dir)
+      for (const cluster_dir of cluster_dirs) {
+        const cluster_path =
+          path.resolve(branch_conf_dir, cluster_dir)
+        const shard_names =
+          getShardNamesInCluster(cluster_path)
+        
+        this.registerCluster(
+          install_dir,
+          cluster_dir,
+          "todo",
+          branch_name,
+          shard_names
+        )
+      }
+
+    }
   }
 
   sendCommandToCluster(cmd, cluster_id) {

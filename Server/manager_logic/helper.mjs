@@ -1,5 +1,5 @@
 import os from 'node:os'
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdir } from "node:fs";
 import path from "node:path";
 import { getDataKey } from '../data_writer.mjs';
 
@@ -106,4 +106,74 @@ export function getPersistentDir() {
   //     new_dir = dir.readSync()
   //   }
   // })
+}
+
+/**
+ * @param {String} dir_path 
+ * @returns {String[]}
+ */
+export function getClusterDirsInDir(dir_path) {
+  if (!existsSync(dir_path)) {
+    return []
+  }
+
+  const dir = opendirSync(dir_path)
+  const cluster_dirs = []
+  let dir_entry = dir.readSync()
+  while (dir_entry) {
+    if (!dir_entry.isDirectory()) {
+      dir_entry = dir.readSync()
+      continue
+    }
+
+    const cluster_ini_path =
+      path.resolve(dir_path, dir_entry.name, "cluster.ini")
+    if (existsSync(cluster_ini_path)) {
+      cluster_dirs.push(dir_entry.name)
+    }
+
+    dir_entry = dir.readSync()
+  }
+
+  return cluster_dirs
+}
+
+/**
+ * @param {String} dir_path 
+ * @returns {String[]}
+ */
+export function getShardNamesInCluster(cluster_path) {
+  const shard_names = []
+  const dir = opendirSync(cluster_path)
+  let dir_entry = dir.readSync()
+  while(dir_entry) {
+    const server_ini_path =
+      path.resolve(cluster_path, dir_entry.name, "server.ini")
+    if (dir_entry.isDirectory()
+      && existsSync(server_ini_path)) {
+      shard_names.push(dir_entry.name)
+    }
+
+    dir_entry = dir.readSync()
+  }
+  
+  return shard_names
+}
+
+export function makeDefinedDirs() {
+  const branches_data = getDataKey("branches_data")
+  const persistent_storage_root = getPersistentStorageRoot()
+  for (const branch_name in branches_data) {
+    const install_dir = getBranchInstallDir(branch_name)
+    mkdir(install_dir, {
+      recursive: true
+    }, () => {})
+
+    const conf_dir = path.resolve(
+      persistent_storage_root, branch_name
+    )
+    mkdir(conf_dir, {
+      recursive: true
+    }, () => {})
+  }
 }
