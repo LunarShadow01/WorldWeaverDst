@@ -8,7 +8,7 @@ export default function Button({children, onClick=() => {}}) {
       flex items-center justify-center
       hover:scale-110 hover:bg-accent transition-all duration-300">
       <button className={`flex justify-center items-center
-        focus:outline-none focus:ring-0 focus:border-none`}
+        focus:outline-none focus:ring-0 focus:border-none w-full`}
         onClick={onClick}>
               {children}
       </button>

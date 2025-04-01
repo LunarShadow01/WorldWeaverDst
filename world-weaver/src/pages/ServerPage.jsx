@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
 import Button from '../components/Button'
-import { io } from 'socket.io-client'
+import StartStopButton from '../components/StartStopButton'
 
 /**
  * 
@@ -19,19 +19,18 @@ export default function ServerPage({user_token, socket}) {
   const max_console_messages = 50
   const scroll_snap_buffer = 40
 
-  const [is_running, setIsRunning] = useState(false)
+  const [minimal_entry, setMinimalEntry] = useState({})
   const [console_log, setConsoleLog] = useState([""])
-  const [console_paused, setConsolePaused] = useState(false)
-  const [count, setCount] = useState(0)
+
+  const is_running = minimal_entry?.is_running
+  const is_online = minimal_entry?.is_online
+
+  console.log("is_running: "+is_running+" is_online: "+is_online)
 
   const messages_container = useRef(null)
 
   const onConsoleUpdate = ({new_data}) => {
-    if (console_paused) {
-      // backlog update
-      return
-    }
-    const new_console_log = []// console_log.copyWithin(console_log.length, 0, console_log.length)
+    const new_console_log = []
     for (const log of console_log) {
       new_console_log.push(log)
     }
@@ -83,13 +82,25 @@ export default function ServerPage({user_token, socket}) {
     
   }, [console_log, messages_container])
 
+  useEffect(() => {
+    if (user_token !== "") {
+      socket.emit("join_min_updates", {user_token})
+      socket.emit("push_minimal_update", {user_token, cluster_id})
+      setMinimalEntry({})
+    }
+  }, [user_token])
 
-  // useEffect(() => {
-    // setInterval(() => {
-    //   setCount(count + 1)
-    //   onConsoleUpdate({new_data: "message "+count})
-    // }, 500)
-  // }, [])
+  useEffect(() => {
+    const onMinUpdate = ({id, entry}) => {
+      if (Number(cluster_id) === id) {
+        setMinimalEntry(entry)
+      }
+    }
+
+    if (socket.listeners("min_update").length <= 0) {
+      socket.on("min_update", onMinUpdate)
+    }
+  }, [minimal_entry])
 
   return (
     <div className='grid grid-cols-5 h-full'>
@@ -110,21 +121,17 @@ export default function ServerPage({user_token, socket}) {
       </div>
       <div className='flex flex-col p-2
         items-center justify-end w-full h-full'>
-        <Button onClick={() => {
-          if (is_running) {
-            socket.emit("send_server_action", {user_token, action: "stop", cluster_id})
-          } else {
-            socket.emit("send_server_action", {user_token, action: "start", cluster_id})
-          }
-        }}>
-          {is_running ? "shutdown cluster" : "start cluster"}
-        </Button>
-        <Button onClick={() => {
-          setCount(count + 1)
-          onConsoleUpdate({new_data: "message "+count})
-          }}>
-          WTH
-        </Button>
+        <StartStopButton 
+          cluster_id={cluster_id}
+          is_running={is_running}
+          socket={socket}
+          user_token={user_token}>
+            {is_running
+              ? is_online ? "shutdown"
+              : "spooling"
+              : "startup"
+            }
+        </StartStopButton>
       </div>
       <div>
 
