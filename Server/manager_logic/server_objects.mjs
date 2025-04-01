@@ -4,7 +4,7 @@ import path from "node:path"
 import { existsSync, opendirSync } from "node:fs"
 import Stream from "node:stream"
 
-import { getBranchInstallDir, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helpers.mjs"
+import { getBranchInstallDir, getClusterConfig, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
@@ -35,7 +35,6 @@ export class Shard {
   setup(
     shard_name,
     is_master,
-    game_dir,
     cluster_dir,
     cluster_token,
     branch_name
@@ -44,9 +43,6 @@ export class Shard {
     this.shard_name = shard_name
     /**@type {Boolean} */
     this.is_master = is_master
-
-    /**@type {String} */
-    this.game_dir = game_dir
     /**@type {String} */
     this.cluster_dir = cluster_dir
     /**@type {String} */
@@ -189,38 +185,34 @@ export class Cluster {
 
   /**
    * @param {String[]} shard_codes 
-   * @param {String} game_dir 
+   * @param {String} install_dir 
    * @param {String} cluster_dir 
    * @returns {Cluster}
    */
   setup(
     shard_codes,
-    game_dir,
-    cluster_dir,
+    cluster_path,
     cluster_token,
     branch_name,
     io
   ) {
-    this.game_dir = game_dir
-    this.cluster_dir = cluster_dir
+    const cluster_dir = path.basename(cluster_path)
+    
+    this.cluster_path = cluster_path
     this.cluster_token = cluster_token
     this.branch_name = branch_name
+    
     /**@type {Socket} */
     this.io = io
-
-    if (!existsSync(game_dir)) {
-      throw Error("game directory or cluster directory cannot be found")
-    }
 
     for (const shard_code of shard_codes) {
       const is_master = shard_code == "Master"
       const shard = new Shard().setup(
         shard_code,
         is_master,
-        game_dir,
         cluster_dir,
         cluster_token,
-        this.branch_name
+        branch_name
       )
       shard.events.addListener("stdout", (shard, data) => {
         this.onShardStdout(shard, data)
@@ -242,7 +234,7 @@ export class Cluster {
     const install_dir = getBranchInstallDir(this.branch_name)
     
     const cwd = path.resolve(install_dir, "bin64")
-    const exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
+    const exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe") // todo, platform specific exe
 
     return existsSync(exe)
   }
@@ -335,7 +327,10 @@ export class Cluster {
       .emit("std_updates", {shard, data})
     }
     
-    // console.log("("+shard.shard_name+"): ", data)
+    // temp
+    if (shard.is_master) {
+      console.log(data)
+    }
   }
 
   /**
@@ -369,8 +364,7 @@ export class Manager {
   }
 
   registerCluster(
-    game_dir,
-    cluster_dir,
+    cluster_path,
     cluster_token,
     branch_name,
     shard_codes,
@@ -378,8 +372,7 @@ export class Manager {
     const cluster = new Cluster()
     .setup(
       shard_codes,
-      game_dir,
-      cluster_dir,
+      cluster_path,
       cluster_token,
       branch_name,
       this.io
@@ -391,7 +384,7 @@ export class Manager {
   scanAndRegisterClusters() {
     const branches_data = getDataKey("branches_data")
     for (const branch_name in branches_data) {
-      const install_dir = getBranchInstallDir(branch_name)
+
       const branch_conf_dir = path.resolve(getPersistentStorageRoot(), branch_name)
       const cluster_dirs = getClusterDirsInDir(branch_conf_dir)
       for (const cluster_dir of cluster_dirs) {
@@ -401,8 +394,7 @@ export class Manager {
           getShardNamesInCluster(cluster_path)
         
         this.registerCluster(
-          install_dir,
-          cluster_dir,
+          cluster_path,
           this.cluster_token,
           branch_name,
           shard_names

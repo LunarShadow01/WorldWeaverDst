@@ -1,6 +1,7 @@
 import os from 'node:os'
 import { readFileSync, existsSync, opendirSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { parse as iniParse } from 'ini';
 
 import { getDataKey } from '../data_writer.mjs';
 import { Cluster, Shard } from './server_objects.mjs';
@@ -12,6 +13,19 @@ export class IdManager {
     IdManager.count++
     return IdManager.count
   }
+}
+
+export function getClusterConfig(cluster_dir) {
+  const conf_path = path.resolve(cluster_dir, "cluster.ini")
+  if (!existsSync(conf_path)) {
+    return null
+  }
+
+  const content = readFileSync(conf_path, {encoding: "utf-8"})
+  const conf = iniParse(content, {bracketedArray: true})
+
+  return conf
+
 }
 
 export function loadLuaFile(dirname, filename) {
@@ -53,10 +67,6 @@ function extractWorldWeaverData(stdout_chunk) {
  * @param {String} stdout_chunk 
  */
 export function handleShardOutput(cluster, shard, stdout_chunk) {
-  if (shard.is_master) {
-    console.log(stdout_chunk)
-  }
-
   if (stdout_chunk === null || stdout_chunk === undefined) {
     return
   }
@@ -86,7 +96,7 @@ export function handleShardOutput(cluster, shard, stdout_chunk) {
 }
 
 export function getBranchInstallDir(branch_name) {
-  return path.resolve(getDataKey("world_weaver_root"), "game_files", branch_name)
+  return path.resolve(getDataKey("world_weaver_root"), "GameFiles", branch_name)
 }
 
 export function getPersistentStorageRoot() {
