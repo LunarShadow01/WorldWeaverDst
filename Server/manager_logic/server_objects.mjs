@@ -4,7 +4,7 @@ import path from "node:path"
 import { existsSync, opendirSync } from "node:fs"
 import Stream from "node:stream"
 
-import { getBranchInstallDir, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helper.mjs"
+import { getBranchInstallDir, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"

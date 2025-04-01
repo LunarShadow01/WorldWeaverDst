@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { getBranchInstallDir, getSteamCmd } from "./helper.mjs"
+import { getBranchInstallDir, getSteamCmd } from "./helpers.mjs"
 import { getDataKey, setDataKey } from '../data_writer.mjs'
 
 const dst_app_id = 343050
@@ -116,7 +116,7 @@ async function checkForUpdates() {
   const saved_branches_data = getDataKey("branches_data")
   /**@type {Object<string, boolean>} */ 
   const update_marks = {}
-  
+
   for (const branch_name in branches_data) {
     const branch_data = branches_data[branch_name]
     const build_id = branch_data.buildid // game version

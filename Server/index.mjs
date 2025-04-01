@@ -1,6 +1,6 @@
 import io, { ioConnectManager } from "./backend_service/server.mjs";
 import { cluster_token } from "./manager_logic/constants.mjs";
-import { checkDefinedDirs, makeDefinedDirs } from "./manager_logic/helper.mjs";
+import { checkDefinedDirs, makeDefinedDirs } from "./manager_logic/helpers.mjs";
 import { Manager } from "./manager_logic/server_objects.mjs";
 
 function main() {
