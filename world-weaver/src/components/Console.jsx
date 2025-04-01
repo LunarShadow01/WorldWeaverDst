@@ -3,15 +3,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import Button from './Button'
 
 import PublishIcon from '@mui/icons-material/Publish';
+import { getDataKey, hasDataKey, setDataKey } from '../scripts/storage';
 
-export default function Console({messages_container, onConsoleSend = () => {}}) {
-  const [console_input, setConsoleInput] = useState("")
-
-  const onEnter = () => {
-    console.log("enter sent")
-    onConsoleSend(console_input)
-    setConsoleInput("")
-  }
+export default function Console({messages_container, onConsoleSend = (cmd) => {}}) {
 
   return (
     <div className='flex items-start justify-center w-full h-full'>
@@ -36,23 +30,72 @@ export default function Console({messages_container, onConsoleSend = () => {}}) 
               })} */}
           </pre>
           <div className='opacity-0 -z-50'>
-            <ConsoleInput onEnter={onEnter} setValue={setConsoleInput}/>
+            <ConsoleInput onConsoleSend={onConsoleSend}/>
           </div>
         </div>
-        <ConsoleInput onEnter={onEnter} setValue={setConsoleInput}/>
+        <ConsoleInput onConsoleSend={onConsoleSend}/>
       </div>
     </div>
   )
 }
 
+const max_history = 20
+const history_storage_key = "cmd_history"
+
 function ConsoleInput({
-  onEnter,
-  setValue = () => {}
+  onConsoleSend = (cmd) => {}
 }) {
+  const [history_page, setHistoryPage] = useState(-1);
+  const [history_cache, setHistoryCache] = useState("")
+
   const registerKeyPress = (event) => {
     if (event.key === "Enter") {
       onEnter()
+    } else if (event.key === "ArrowUp") {
+      onPage(1)
+    } else if (event.key === "ArrowDown") {
+      onPage(-1)
     }
+  }
+
+  const onPage = (dir) => {
+    const new_page = Math.max(-1, (Math.min(max_history, history_page + dir)))
+    if (history_page === -1 && new_page !== -1) {
+      setHistoryCache(cur_value)
+      setCurValue("")
+    } else if (history_page !== -1 && new_page === -1) {
+      setCurValue(history_cache)
+      setHistoryCache("")
+    }
+    
+    if (new_page !== -1) {
+      const history = getDataKey(history_storage_key)
+      if (history.length <= new_page) {
+        return
+      }
+
+      setCurValue(history[new_page])
+    }
+
+    setHistoryPage(new_page)
+  }
+
+  const onEnter = () => {
+    if (!hasDataKey(history_storage_key)) {
+      setDataKey(history_storage_key, [])
+    }
+
+    const history = getDataKey(history_storage_key)
+    history.reverse()
+    history.push(cur_value)
+    history.reverse()
+    if (history.length > max_history) {
+      history.shift()
+    }
+    setDataKey(history_storage_key, history)
+    onConsoleSend(cur_value)
+
+    setCurValue("")
   }
 
   const [cur_value, setCurValue] = useState("")
@@ -68,7 +111,7 @@ function ConsoleInput({
         type="text"
         value={cur_value}
         onKeyDown={registerKeyPress}
-        onChange={(event) => {setValue(event.target.value); setCurValue(event.target.value)}}
+        onChange={(event) => {setCurValue(event.target.value); setHistoryPage(-1)}}
         placeholder='terminal commands...'
         />
         <div className='w-fit'>

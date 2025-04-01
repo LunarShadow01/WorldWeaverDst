@@ -17,7 +17,7 @@ export default function ServerPage({user_token, socket}) {
   const cluster_id = params.id
 
   const max_console_messages = 50
-  const scroll_snap_buffer = 40
+  const scroll_snap_buffer = 80
 
   const [minimal_entry, setMinimalEntry] = useState({})
   const [console_log, setConsoleLog] = useState([""])
@@ -65,7 +65,7 @@ export default function ServerPage({user_token, socket}) {
   }
 
   const onSendCommand = (cmd) => {
-
+    socket.emit("send_server_command", {user_token, command: cmd, cluster_id})
   }
 
   useEffect(() => {
