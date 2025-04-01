@@ -99,6 +99,20 @@ export function getBranchInstallDir(branch_name) {
   return path.resolve(getDataKey("world_weaver_root"), "GameFiles", branch_name)
 }
 
+export function getBranchExecutable(branch_name) {
+  const dir = opendirSync(path.resolve(getBranchInstallDir(branch_name), "bin64"))
+  let ent = dir.readSync()
+  while (ent) {
+    if (ent.isFile() && ent.name.includes("dontstarve_dedicated")) {
+      dir.close()
+      return path.resolve(ent.parentPath, ent.name)
+    }
+    ent = dir.readSync()
+  }
+  dir.close()
+  return ""
+}
+
 export function getPersistentStorageRoot() {
   return path.resolve(getDataKey("world_weaver_root"), "DoNotStarveTogether")
 }

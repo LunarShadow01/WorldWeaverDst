@@ -37,7 +37,7 @@ export default function ServerEntry({
               ${is_running ? is_online ? "bg-online" : "bg-spooling" : "bg-offline"}`}/>
             <div className='flex items-start justify-end gap-x-2'>
               <Button onClick={() => {navigate(`/manager/${manager_ip}/cluster/${cluster_id}`)}}>
-                <div className='text-2xl flex items-center justify-center'>
+                <div className='text-4xl flex items-center justify-center'>
                   <LoginIcon fontSize='inherit' color='inherit'></LoginIcon>
                 </div>
               </Button>

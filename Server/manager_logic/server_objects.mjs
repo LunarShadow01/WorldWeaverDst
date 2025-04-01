@@ -1,10 +1,19 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { existsSync, opendirSync } from "node:fs"
+import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
-import { getBranchInstallDir, getClusterConfig, getClusterDirsInDir, getPersistentStorageRoot, getShardNamesInCluster, handleShardOutput, IdManager, loadLuaFile } from "./helpers.mjs"
+import { 
+  getBranchExecutable,
+  getBranchInstallDir,
+  getClusterConfig,
+  getClusterDirsInDir,
+  getPersistentStorageRoot,
+  getShardNamesInCluster,
+  handleShardOutput,
+  IdManager,
+  loadLuaFile } from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
@@ -76,8 +85,9 @@ export class Shard {
     const cluster_dir = this.cluster_dir
     const token = this.cluster_token
 
-    const cwd = path.resolve(install_dir, "bin64")
-    let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
+    const exe = getBranchExecutable(this.branch_name)
+    const cwd = path.dirname(exe) // path.resolve(install_dir, "bin64") // 
+    // let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
 
     const args = `${location_args} -cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
     this.process = spawn(exe, args.split(" "), {

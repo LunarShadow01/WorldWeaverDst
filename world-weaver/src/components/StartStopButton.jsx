@@ -27,7 +27,7 @@ export default function StartStopButton({children, socket, user_token, is_runnin
   return (
     <Button onClick={onClick}>
       <div className='text-4xl flex w-full items-center justify-between gap-x-4'>
-        <div className='text-2xl'>
+        <div className={`text-2xl ${children ? "" : "hidden"}`}>
           {children}
         </div>
         {getIcon()}
