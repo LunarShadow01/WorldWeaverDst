@@ -29,7 +29,7 @@ io.on("connection", (socket) => {
       socket.emit("error", {message: "token invalid"})
       return
     }
-    
+
     socket.join("entry_updates")
   })
 })
@@ -48,6 +48,17 @@ export function ioConnectManager(manager) {
       const servers = manager.getClusterEntries()
 
       socket.emit("server_entries", {servers})
+    })
+
+    socket.on("join_full_updates", ({user_token, cluster_id}) => {
+      if (!isValidToken(user_token)) {
+        socket.emit("error", {message: "token invalid"})
+        return
+      }
+      
+      if (manager.clusters[cluster_id]) {
+        socket.join("full_updates/"+cluster_id)
+      }
     })
 
     socket.on("push_minimal_update", ({user_token, cluster_id}) => {

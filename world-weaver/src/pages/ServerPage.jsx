@@ -29,7 +29,7 @@ export default function ServerPage({user_token, socket}) {
 
   const messages_container = useRef(null)
 
-  const onConsoleUpdate = ({new_data}) => {
+  const onConsoleUpdate = (new_data) => {
     const new_console_log = []
     for (const log of console_log) {
       new_console_log.push(log)
@@ -85,7 +85,13 @@ export default function ServerPage({user_token, socket}) {
   useEffect(() => {
     if (user_token !== "") {
       socket.emit("join_min_updates", {user_token})
+      socket.emit("join_full_updates", {user_token, cluster_id})
       socket.emit("push_minimal_update", {user_token, cluster_id})
+
+      socket.on("std_updates", ({shard, data}) => {
+        const composed = `(${shard.shard_name}): ${data}`
+        onConsoleUpdate(composed)
+      })
       setMinimalEntry({})
     }
   }, [user_token])
