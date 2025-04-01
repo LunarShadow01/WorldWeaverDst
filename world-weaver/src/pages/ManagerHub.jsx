@@ -86,7 +86,6 @@ function HubMain({socket}) {
   
   useEffect(() => {
     const onMinUpdate = ({id, entry}) => {
-      console.log("min entry update:", entry)
       const entries = []
       entries.push(entry)
       for (const old_entry of server_entries) {

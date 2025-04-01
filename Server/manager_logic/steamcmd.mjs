@@ -116,8 +116,7 @@ async function checkForUpdates() {
   const saved_branches_data = getDataKey("branches_data")
   /**@type {Object<string, boolean>} */ 
   const update_marks = {}
-
-  // console.log(saved_branches_data)
+  
   for (const branch_name in branches_data) {
     const branch_data = branches_data[branch_name]
     const build_id = branch_data.buildid // game version
@@ -133,7 +132,6 @@ async function checkForUpdates() {
   }
 
   setDataKey("branches_data", saved_branches_data)
-  // console.log(saved_branches_data)
 
   return update_marks
 }
@@ -150,8 +148,3 @@ function startUpdatesIntervals() {
     }
   }, check_interval);
 }
-
-// await checkForUpdates()
-// console.log(new Date(1740620277 * 1000))
-
-// console.log(await getAvailableBranches())

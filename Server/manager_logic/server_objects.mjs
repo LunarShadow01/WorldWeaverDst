@@ -312,7 +312,6 @@ export class Cluster {
 
   doMinEntryUpdate() {
     const entry = this.getClusterEntry()
-    console.log("doing min update:", entry.is_running)
     this.io.to("entry_updates")
     .emit("min_update", {id: this.id, entry})
   }
@@ -329,7 +328,7 @@ export class Cluster {
       .emit("std_updates", {shard, data})
     }
     
-    console.log("("+shard.shard_name+"): ", data)
+    // console.log("("+shard.shard_name+"): ", data)
   }
 }
 
@@ -391,11 +390,9 @@ export class Manager {
 
   getClusterEntries() {
     const entries = []
-    // console.log(this.clusters)
     for (const id in this.clusters) {
       const cluster = this.clusters[id]
       entries.push(cluster.getClusterEntry())
-      // console.log(cluster)
     }
 
     return entries

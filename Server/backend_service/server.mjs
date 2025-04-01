@@ -52,12 +52,9 @@ export function ioConnectManager(manager) {
 
     socket.on("send_server_action", ({user_token, action, cluster_id}) => {
       if (!isValidToken(user_token)) {
-        console.log("user token invalid")
         socket.emit("error", {message: "token invalid"})
         return
       }
-
-      console.log("action: "+action)
 
       switch(action) {
         case "start":
