@@ -11,7 +11,10 @@ export default function ServerEntry({
   cur_player_count = 0,
   max_player_count = 20,
   is_running = false,
-  server_id = -1
+  is_online = false,
+  cluster_id = -1,
+  socket,
+  user_token
   }) {
   const navigate = useNavigate()
 
@@ -25,9 +28,10 @@ export default function ServerEntry({
           </div>
           <div className='w-fit gap-y-2 flex flex-col items-end justify-center'>
             <div className={`w-full h-4 rounded-full border-2 border-secondary
-              ${is_running ? "bg-primary" : "bg-text"}`}/>
+              ${is_running ? is_online ? "bg-online" : "bg-spooling" : "bg-offline"}`}/>
             <div className='flex flex-col items-start justify-end'>
-              <Button onClick={() => {navigate(`/manager/${manager_ip}/cluster/${server_id}`)}}>
+              {/* <Button onClick={() => {navigate(`/manager/${manager_ip}/cluster/${cluster_id}`)}}> */}
+              <Button onClick={() => {socket.emit("send_server_action", {user_token, action: "start", cluster_id})}}>
                 <div className='text-2xl flex items-center justify-center'>
                   <LoginIcon fontSize='inherit' color='inherit'></LoginIcon>
                 </div>

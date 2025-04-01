@@ -1,0 +1,3 @@
+{
+  "ignore": ["./data.json", "./backend_service/jwt_secret.txt", "./backend_service/users.json"]
+}

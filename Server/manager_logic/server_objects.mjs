@@ -15,6 +15,8 @@ export class Shard {
     this.process = null
     this.interval_task = null
     this.events = new Stream.EventEmitter()
+    /**@type {Boolean} */
+    this.is_online = false
   }
 
   /**
@@ -23,21 +25,6 @@ export class Shard {
   emitStdout(data) {
     if (this.events) {
       this.events.emit("stdout", this, data)
-    }
-  }
-
-  /**
-   * @param {Boolean} is_running 
-   * @param {Boolean} is_online 
-   */
-  emitProcessUpdate(is_running, is_online) {
-    this.is_online = is_online && is_running
-
-    if (this.events) {
-      this.events.emit("process_updated", {
-        is_running,
-        is_online
-      })
     }
   }
 
@@ -71,14 +58,19 @@ export class Shard {
   }
 
   isRunning() {
-    return this.process
+    return Boolean(this.process)
+  }
+
+  isOnline() {
+    // fail safe, can't be online and not running
+    return this.is_online && this.isRunning()
   }
 
   start() {
     if (this.isRunning())
       return
-    
-    // const world_weaver_root = getDataKey("world_weaver_root")
+    this.is_online = false
+
     const persistent_storage_root = getPersistentStorageRoot()
     const conf_dir = this.branch_name
     const location_args = `-persistent_storage_root ${persistent_storage_root}`
@@ -118,8 +110,10 @@ export class Shard {
   onClosed(code, signal) {
     this.process = null
 
+    if (this.events) {
+      this.events.emit("min_update")
+    }
     this.emitStdout(`shard closed with code: ${code} by signal: ${signal}`)
-    this.emitProcessUpdate(this.isRunning(), false)
   }
 
   stop() {
@@ -128,11 +122,11 @@ export class Shard {
     }
     
     this.sendCommand("c_shutdown(true)")
+    this.is_online = false
   }
   
   sendCommand(cmd) {
     if (!this.isRunning()) {
-      console.log("cannot send command process isn't running")
       return
     }
     
@@ -156,19 +150,24 @@ export class Shard {
   }
   
   onWorldActive() {
-    this.emitStdout("world is online")
-    this.emitProcessUpdate(this.isRunning(), true)
-    
+    this.is_online = true
+
     if (this.is_master) {
       this.sendCommand(loadLuaFile(dirname, "worlddata.lua"))
       this.sendCommand(loadLuaFile(dirname, "custom_cmds.lua"))
     }
     
-    this.stop()
+    if (this.events) {
+      this.events.emit("min_update")
+    }
+
+    setTimeout(() => {
+      this.stop()
+    }, 10 * 1000);
   }
   
   onRollback() {
-    this.emitProcessUpdate(this.isRunning(), false)
+    this.is_online = false
   }
 }
 
@@ -218,8 +217,13 @@ export class Cluster {
         cluster_token,
         this.branch_name
       )
-      shard.events.addListener("stdout", this.onShardStdout)
-
+      shard.events.addListener("stdout", (shard, data) => {
+        this.onShardStdout(shard, data)
+      })
+      shard.events.addListener("min_update", () => {
+        this.doMinEntryUpdate()
+      })
+      
       this.shards.push(shard)
       if (is_master) {
         this.master = shard
@@ -242,12 +246,18 @@ export class Cluster {
     return (this.master && this.master.isRunning())
   }
 
+  isOnline() {
+    return (this.master && this.master.isOnline())
+  }
+
   start() {
     if (!this.hasNullrenderer()) {
       updateGame(this.branch_name).then(() => {
         for (const shard of this.shards) {
           shard.start()
         }
+
+        this.doMinEntryUpdate() // cluster started, send min update
       })
       return
     }
@@ -255,6 +265,8 @@ export class Cluster {
     for (const shard of this.shards) {
       shard.start()
     }
+
+    this.doMinEntryUpdate() // cluster started, send min update
   }
 
   /**
@@ -272,6 +284,8 @@ export class Cluster {
     for (const shard of this.shards) {
       shard.stop()
     }
+
+    this.doMinEntryUpdate() // cluster shutdown send update
   }
 
   sendCommand(cmd, just_master = true) {
@@ -284,6 +298,25 @@ export class Cluster {
     }
   }
 
+  getClusterEntry() {
+    const entry = {}
+    entry.id = this.id
+    entry.is_running = this.isRunning()
+    entry.is_online = this.isOnline()
+    entry.name = "placeholder "+this.id
+    entry.max_players = 20
+    entry.cur_players = 0
+
+    return entry
+  }
+
+  doMinEntryUpdate() {
+    const entry = this.getClusterEntry()
+    console.log("doing min update:", entry.is_running)
+    this.io.to("entry_updates")
+    .emit("min_update", {id: this.id, entry})
+  }
+
   /**
    * @param {Shard} shard
    * @param {String} data
@@ -292,8 +325,8 @@ export class Cluster {
     handleShardOutput(shard, data)
 
     if (this.io) {
-      this.io.to("cluster/"+this.id+"/"+"console")
-      .emit({shard, data})
+      this.io.to("full_updates/"+this.id)
+      .emit("std_updates", {shard, data})
     }
     
     console.log("("+shard.shard_name+"): ", data)
@@ -353,21 +386,16 @@ export class Manager {
           shard_names
         )
       }
-
     }
   }
 
   getClusterEntries() {
     const entries = []
+    // console.log(this.clusters)
     for (const id in this.clusters) {
-      const entry = {}
-      entry.id = id
-      entry.is_running = this.clusters[id].isRunning()
-      entry.is_online = this.clusters[id].is_online
-      entry.name = "placeholder "+id
-      entry.max_players = 20
-      entry.cur_players = 0
-      entries.push(entry)
+      const cluster = this.clusters[id]
+      entries.push(cluster.getClusterEntry())
+      // console.log(cluster)
     }
 
     return entries

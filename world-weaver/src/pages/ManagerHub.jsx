@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams, Routes, Route, useLocation } from 'react-router-dom'
+import { useNavigate, useParams, Routes, Route } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
 
 import ServerEntry from '../components/ServerEntry'
@@ -30,18 +30,13 @@ export default function ManagerHub() {
 
     const tokens = getDataKey(tokens_storage_key)
     if (!(tokens.hasOwnProperty(manager_ip))) {
-      console.log(manager_ip)
-      console.log(tokens)
       navigate(`/manager/${manager_ip}/login`)
-      console.log("could not find token in storage")
     } else {
       socket.once("token_verified", ({res}) => {
         if (res) {
           setUserToken(tokens[manager_ip])
-          console.log("using token from storage")
         } else {
           navigate(`/manager/${manager_ip}/login`)
-          console.log("token from storage could not be verified")
         }
       })
       socket.emit("verify_token",
@@ -76,17 +71,38 @@ function HubMain({socket}) {
    * ]} 
    */
   const [server_entries, setServerEntries] = useState([])
-  
+
   useEffect(() => {
     const tokens = getDataKey(tokens_storage_key)
     const user_token = tokens[manager_ip]
 
     socket.once("server_entries", ({servers}) => {
       setServerEntries(servers)
-      console.log(servers)  
+      socket.emit("join_min_updates", {user_token})
     })
+    
     socket.emit("get_servers", {user_token})
   }, [manager_ip])
+  
+  useEffect(() => {
+    const onMinUpdate = ({id, entry}) => {
+      console.log("min entry update:", entry)
+      const entries = []
+      entries.push(entry)
+      for (const old_entry of server_entries) {
+        if (old_entry.id !== id) {
+          entries.push(old_entry)
+        }
+      }
+  
+      setServerEntries(entries)
+    }
+
+    if (socket.listeners("min_update").length <= 0) {
+      socket.on("min_update", onMinUpdate)
+    }
+
+  }, [server_entries])
   
   return (
     <div className='flex flex-col items-center justify-center w-full gap-y-2'>
@@ -95,17 +111,20 @@ function HubMain({socket}) {
       <div className='lg:grid grid-cols-3 max-lg:flex flex-col
         items-center justify-center gap-2
         lg:w-fit max-lg:w-full px-2'>
-        {server_entries.map((server_entry, i) => {
+        {server_entries.map((cluster_entry, i) => {
           return <ServerEntry
             key={i}
             manager_ip={manager_ip}
-            server_name={server_entry.name}
-            cur_player_count={server_entry.cur_player}
-            max_player_count={server_entry.max_player}
-            is_running={server_entry.is_running}
-            server_id={server_entry.id}
-            />
-          })}
+            server_name={cluster_entry.name}
+            cur_player_count={cluster_entry.cur_player}
+            max_player_count={cluster_entry.max_player}
+            is_running={cluster_entry.is_running}
+            is_online={cluster_entry.is_online}
+            cluster_id={cluster_entry.id}
+            socket={socket}
+            user_token={getDataKey(tokens_storage_key)[manager_ip]}
+          />
+        })}
       </div>
     </div>
   )

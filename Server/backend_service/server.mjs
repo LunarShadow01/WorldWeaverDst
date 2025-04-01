@@ -24,25 +24,14 @@ io.on("connection", (socket) => {
     socket.emit("new_token", {user_token})
   })
 
-  socket.on("join_cluster_room", ({user_token, cluster_id, room}) => {
+  socket.on("join_min_updates", ({user_token}) => {
     if (!isValidToken(user_token)) {
       socket.emit("error", {message: "token invalid"})
       return
     }
 
-    socket.join("cluster/"+cluster_id+"/"+room)
+    socket.join("entry_updates")
   })
-  
-  socket.on("leave_cluster_room", ({user_token, cluster_id, room}) => {
-    if (!isValidToken(user_token)) {
-      socket.emit("error", {message: "token invalid"})
-      return
-    }
-    
-    socket.leave("cluster/"+cluster_id+"/"+room)
-  })
-
-  
 })
 
 /**
@@ -50,44 +39,50 @@ io.on("connection", (socket) => {
  */
 export function ioConnectManager(manager) {
   io.on("connection", (socket) => {
-  // move definitions outside so manager instance is available in scope
-  socket.on("get_servers", ({user_token}) => {
-    if (!isValidToken(user_token)) {
-      socket.emit("error", {message: "token invalid"})
-      return
-    }
+    socket.on("get_servers", ({user_token}) => {
+      if (!isValidToken(user_token)) {
+        socket.emit("error", {message: "token invalid"})
+        return
+      }
 
-    const servers = manager.getClusterEntries()
+      const servers = manager.getClusterEntries()
 
-    socket.emit("server_entries", {servers})
-  })
+      socket.emit("server_entries", {servers})
+    })
 
-  socket.on("send_server_action", ({user_token, action, cluster_id}) => {
-    if (!isValidToken(user_token)) {
-      socket.emit("error", {message: "token invalid"})
-      return
-    }
+    socket.on("send_server_action", ({user_token, action, cluster_id}) => {
+      if (!isValidToken(user_token)) {
+        console.log("user token invalid")
+        socket.emit("error", {message: "token invalid"})
+        return
+      }
 
-    switch(action) {
-      case "start":
-        manager.clusters[cluster_id].start()
-      case "stop":
-        manager.clusters[cluster_id].stop()
-      case "save":
-        manager.sendCommandToCluster(`c_save()`, cluster_id)
-      default:
-        manager.sendCommandToCluster(`print("action: \"${action}\" not recognized")`, cluster_id)
-    }
-  })
+      console.log("action: "+action)
 
-  socket.on("send_server_command", ({user_token, command, cluster_id}) => {
-    if (!isValidToken(user_token)) {
-      socket.emit("error", {message: "token invalid"})
-      return
-    }
+      switch(action) {
+        case "start":
+          manager.clusters[cluster_id].start()
+          break;
+        case "stop":
+          manager.clusters[cluster_id].stop()
+          break;
+        case "save":
+          manager.sendCommandToCluster(`c_save()`, cluster_id)
+          break;
+        default:
+          manager.sendCommandToCluster(`print("action: \"${action}\" not recognized")`, cluster_id)
+          break;
+      }
+    })
 
-    manager.sendCommandToCluster(command, cluster_id)
-  })
+    socket.on("send_server_command", ({user_token, command, cluster_id}) => {
+      if (!isValidToken(user_token)) {
+        socket.emit("error", {message: "token invalid"})
+        return
+      }
+
+      manager.sendCommandToCluster(command, cluster_id)
+    })
   })
 }
 

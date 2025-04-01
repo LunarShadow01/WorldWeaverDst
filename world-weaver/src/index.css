@@ -10,6 +10,9 @@
 
 @layer base {
   .light {
+    --online: #2ff983;
+    --spooling: #d8b818;
+    --offline: #f83076;
     --text: #03210e;
     --background: #f1fef4;
     --primary: #0c7e2a;
@@ -17,6 +20,9 @@
     --accent: #158fe0;
   }
   :root {
+    --online: #06d25b;
+    --spooling: #d8b818;
+    --offline: #cf084e;
     --text: #defce9;
     --background: #010e04;
     --primary: #81f39f;
@@ -26,6 +32,9 @@
 }
 
 @theme {
+  --color-online: var(--online);
+  --color-spooling: var(--spooling);
+  --color-offline: var(--offline);
   --color-background: var(--background);
   --color-text: var(--text);
   --color-primary: var(--primary);
