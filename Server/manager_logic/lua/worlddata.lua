@@ -1,5 +1,13 @@
 local function SendData(data)
-    print(string.format("VoxLauncherData=%s", json.encode(data)))
+    print(string.format("WorldWeaverData=%s", json.encode(data)))
+end
+
+local function GetCurPlayers()
+  return math.max(0, #TheNet:GetClientTable() - 1)
+end
+
+local function GetMaxPlayers()
+  return TheNet:GetDefaultMaxPlayers() or "?"
 end
 
 local function GetNumPlayers()
@@ -16,14 +24,16 @@ end
 
 local function SendInitialData()
     SendData({
-        players = GetNumPlayers(),
-        season  = GetSeason(),
-        day     = GetCurrentDay(),
+        cur_players = 0,
+        max_players = GetMaxPlayers(),
+        season = GetSeason(),
+        day = GetCurrentDay(),
     })
 end
 
 local function OnPlayerCountChanged(world, data)
-    SendData({ players = GetNumPlayers() })
+    -- SendData({ players = GetNumPlayers() })
+    SendData({ cur_players = GetCurPlayers() })
 end
 
 local function OnSeasonChanged(world, season)
@@ -34,7 +44,7 @@ local function OnDayChanged(world, cycles)
     SendData({ day = GetCurrentDay() })
 end
 
-if not TheWorld._vox_launcher then
+if not TheWorld._world_weaver then
     TheWorld:ListenForEvent("ms_playercounts", OnPlayerCountChanged)
     TheWorld:WatchWorldState("cycles", OnDayChanged)
     TheWorld:WatchWorldState("season", OnSeasonChanged)
@@ -43,9 +53,9 @@ if not TheWorld._vox_launcher then
     local _OnSimPaused = OnSimPaused
     function OnSimPaused(...) OnPlayerCountChanged() return _OnSimPaused(...) end
 
-    TheWorld._vox_launcher = true
+    TheWorld._world_weaver = true
 end
 
-VoxLauncher_GetServerStats = SendInitialData
+WorldWeaver_GetServerStats = SendInitialData
 
 SendInitialData()

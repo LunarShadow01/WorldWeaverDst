@@ -113,13 +113,8 @@ function HubMain({socket}) {
         {server_entries.map((cluster_entry, i) => {
           return <ServerEntry
             key={i}
+            cluster_entry={cluster_entry}
             manager_ip={manager_ip}
-            server_name={cluster_entry.name}
-            cur_player_count={cluster_entry.cur_player}
-            max_player_count={cluster_entry.max_player}
-            is_running={cluster_entry.is_running}
-            is_online={cluster_entry.is_online}
-            cluster_id={cluster_entry.id}
             socket={socket}
             user_token={getDataKey(tokens_storage_key)[manager_ip]}
           />

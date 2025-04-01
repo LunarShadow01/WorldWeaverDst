@@ -160,10 +160,6 @@ export class Shard {
     if (this.events) {
       this.events.emit("min_update")
     }
-
-    setTimeout(() => {
-      this.stop()
-    }, 10 * 1000);
   }
   
   onRollback() {
@@ -180,6 +176,15 @@ export class Cluster {
 
     /**@type {Number} */
     this.id = IdManager.getNewID()
+
+    /**@type {Number} */
+    this.cur_players = 0
+    /**@type {Number} */
+    this.max_players = 0
+    /**@type {String} */
+    this.season = ""
+    /**@type {Number} */
+    this.day = 0
   }
 
   /**
@@ -304,8 +309,10 @@ export class Cluster {
     entry.is_running = this.isRunning()
     entry.is_online = this.isOnline()
     entry.name = "placeholder "+this.id
-    entry.max_players = 20
-    entry.cur_players = 0
+    entry.max_players = this.max_players
+    entry.cur_players = this.cur_players
+    entry.season = this.season
+    entry.day = this.day
 
     return entry
   }
@@ -321,7 +328,7 @@ export class Cluster {
    * @param {String} data
    */
   onShardStdout(shard, data) {
-    handleShardOutput(shard, data)
+    handleShardOutput(this, shard, data)
 
     if (this.io) {
       this.io.to("full_updates/"+this.id)
@@ -329,6 +336,22 @@ export class Cluster {
     }
     
     // console.log("("+shard.shard_name+"): ", data)
+  }
+
+  /**
+   * @param {{
+   *  cur_players?: Number
+   *  max_players?: Number
+   *  season?: String
+   *  day?: Number
+   * }} world_data
+   */
+  onWorldDataUpdate(world_data) {
+    for (const key in world_data) {
+      this[key] = world_data[key]
+    }
+
+    this.doMinEntryUpdate()
   }
 }
 

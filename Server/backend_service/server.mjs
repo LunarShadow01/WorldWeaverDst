@@ -56,6 +56,10 @@ export function ioConnectManager(manager) {
         return
       }
 
+      if (manager.clusters[cluster_id] === undefined) {
+        return
+      }
+
       switch(action) {
         case "start":
           manager.clusters[cluster_id].start()

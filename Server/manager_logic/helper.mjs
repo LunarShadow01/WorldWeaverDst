@@ -1,7 +1,9 @@
 import os from 'node:os'
 import { readFileSync, existsSync, opendirSync, mkdirSync } from "node:fs";
 import path from "node:path";
+
 import { getDataKey } from '../data_writer.mjs';
+import { Cluster, Shard } from './server_objects.mjs';
 
 export class IdManager {
   static count = 0;
@@ -29,12 +31,32 @@ const world_active_string = "World generated on build"
 const rollback_sent_string = "Received world rollback request"
 const token_invalid_string = "E_INVALID_TOKEN"
 const token_expired_string = "E_EXPIRED_TOKEN"
+const update_data_string = "WorldWeaverData"
 
 /**
+ * @param {String} stdout_chunk
+ * @returns 
+ */
+function extractWorldWeaverData(stdout_chunk) {
+  const re = new RegExp(`${update_data_string}={.*}`, "g")
+  const snippets = Array.from(stdout_chunk.matchAll(re))
+  .map((value) => {
+    return value[0].split("=")[1]
+  })
+  const last_snippet = snippets[snippets.length - 1]
+  return JSON.parse(last_snippet, null, "")
+}
+
+/**
+ * @param {Cluster} cluster 
  * @param {Shard} shard 
  * @param {String} stdout_chunk 
  */
-export function handleShardOutput(shard, stdout_chunk) {
+export function handleShardOutput(cluster, shard, stdout_chunk) {
+  if (shard.is_master) {
+    console.log(stdout_chunk)
+  }
+
   if (stdout_chunk === null || stdout_chunk === undefined) {
     return
   }
@@ -53,6 +75,13 @@ export function handleShardOutput(shard, stdout_chunk) {
 
   if (stdout_chunk.includes(token_invalid_string)) {
     // todo
+  }
+
+  if (shard.is_master
+    && stdout_chunk.includes(update_data_string)) {
+    const world_data = extractWorldWeaverData(stdout_chunk)
+
+    cluster.onWorldDataUpdate(world_data)
   }
 }
 
