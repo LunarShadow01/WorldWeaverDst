@@ -30,7 +30,7 @@ export default function ServerEntry({
           <div className='flex flex-col items-start justify-start'>
             <div>{server_name}</div>
             <div>{cur_players}/{max_players}</div>
-            <div>{season}: day {day}</div>
+            <div className={`${season && day ? "" : "hidden"}`}>{season}: day {day}</div>
           </div>
           <div className='w-fit gap-y-2 flex flex-col-reverse items-end justify-center'>
             <div className={`w-full h-4 rounded-full border-2 border-secondary

@@ -177,10 +177,12 @@ export class Cluster {
     this.cur_players = 0
     /**@type {Number} */
     this.max_players = 0
+    /**@type {String | undefined} */
+    this.season = undefined
+    /**@type {Number | undefined} */
+    this.day = undefined
     /**@type {String} */
-    this.season = ""
-    /**@type {Number} */
-    this.day = 0
+    this.name = ""
   }
 
   /**
@@ -198,6 +200,10 @@ export class Cluster {
   ) {
     const cluster_dir = path.basename(cluster_path)
     
+    const config_data = getClusterConfig(cluster_path)
+    this.name = config_data.NETWORK.cluster_name
+    this.max_players = config_data.GAMEPLAY.max_players
+
     this.cluster_path = cluster_path
     this.cluster_token = cluster_token
     this.branch_name = branch_name
@@ -300,7 +306,7 @@ export class Cluster {
     entry.id = this.id
     entry.is_running = this.isRunning()
     entry.is_online = this.isOnline()
-    entry.name = "placeholder "+this.id
+    entry.name = this.name
     entry.max_players = this.max_players
     entry.cur_players = this.cur_players
     entry.season = this.season
