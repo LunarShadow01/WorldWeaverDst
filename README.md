@@ -39,4 +39,9 @@ new managers can be added with the plus icon
 with the important field being the ip to the manager
 * these manager entries are stored locally on device cache
 
+## dev setup
+* inside both ./world-weaver and ./Server
+1) install depencencies with `npm i`
+2) start the dev client with `npm start`
+3) start the backend with `npm start`
 
