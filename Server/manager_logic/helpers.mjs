@@ -156,7 +156,11 @@ export function getBranchInstallDir(branch_name) {
 }
 
 export function getBranchExecutable(branch_name) {
-  const dir = opendirSync(path.resolve(getBranchInstallDir(branch_name), "bin64"))
+  const bin64_path = path.resolve(getBranchInstallDir(branch_name), "bin64")
+  if (!existsSync(bin64_path)) {
+    return ""
+  }
+  const dir = opendirSync(bin64_path)
   let ent = dir.readSync()
   while (ent) {
     if (ent.isFile() && ent.name.includes("dontstarve_dedicated")) {

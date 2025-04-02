@@ -169,7 +169,6 @@ export const createUser = async (username, email, password) => {
 
   user.save()
 }
-
 /**
  * @param {AuthsUser | null} user_doc 
  * @param {String} password 
@@ -214,7 +213,6 @@ export const getVerifiedUser = (email, password) => {
 
 export const generateUserToken = (email, password) => {
   const user_doc = getVerifiedUser(email, password)
-
   if (user_doc === null) {
     return null
   }

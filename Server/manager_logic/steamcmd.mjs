@@ -37,7 +37,8 @@ function runSteamCmd(cmd) {
 }
 
 export function updateGame(branch) {
-  if (branch_update_processes[branch] !== null) {
+  if (branch_update_processes[branch] !== null
+    && branch_update_processes[branch] !== undefined) {
     return createUpdatePromise(branch_update_processes[branch])
   }
 
@@ -66,9 +67,9 @@ function createUpdatePromise(update_process) {
 
     update_process.once("close", (code) => {
       if (code !== 0) {
-        reject()
+        reject(error.toString())
       } else {
-        resolve()
+        resolve(0)
       }
     })
   })
@@ -115,7 +116,7 @@ function getAvailableBranches(branches_data) {
  * @async
  * @returns {Promise<Object<string, boolean>>}
 */
-async function checkForUpdates() {
+export async function checkForUpdates() {
   const app_data = await getAppData()
   const branches_data = extractBranchesData(app_data)
   const saved_branches_data = getDataKey("branches_data")
