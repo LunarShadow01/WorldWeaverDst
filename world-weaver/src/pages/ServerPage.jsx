@@ -132,7 +132,7 @@ export default function ServerPage({user_token, socket}) {
         <div className={`${cur_players || (season && day) ? "" : "hidden"}
           flex-col items-center justify-center w-full
           p-2 border-2 border-secondary rounded-lg`}>
-          <div className={`flex items-start justify-start w-full ${cur_players ? "" : "hidden"}`}>
+          <div className={`flex items-start justify-start w-full ${cur_players >= 0 ? "" : "hidden"}`}>
             players: {cur_players}/{max_players}
           </div>
           <div className={`${season && day ? "" : "hidden"}
