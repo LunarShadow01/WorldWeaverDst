@@ -7,6 +7,17 @@ import { constants as fs_consts } from 'node:fs';
 
 import { getDataKey } from '../data_writer.mjs';
 import { Cluster, Shard } from './server_objects.mjs';
+import createWorker from '../worker.mjs';
+import { isMainThread } from 'node:worker_threads';
+
+// if (worker) {
+//   console.log(worker)
+// }
+let worker = null
+if (isMainThread) {
+  worker = await createWorker()
+}
+// console.log(await createWorker())
 
 const mkdirAsync = promisify(mkdir)
 const exists = (test_path) => {
@@ -115,6 +126,27 @@ export function handleShardOutput(cluster, shard, stdout_chunk) {
       shard.is_paused = true
     } else if (stdout_chunk.includes(unpaused_string)) {
       shard.is_paused = false
+    }
+  }
+}
+
+export function parseShardOutput(shard, stdout_chunk) {
+  const results = {
+    world_active: stdout_chunk.includes(world_active_string),
+    rollbacking: stdout_chunk.includes(rollback_sent_string),
+    token_expired: stdout_chunk.includes(token_expired_string),
+    token_invalid: stdout_chunk.includes(token_invalid_string),
+  }
+
+  if (shard.is_master) {
+    if (stdout_chunk.includes(update_data_string)) {
+      results.world_data = extractWorldWeaverData(stdout_chunk)
+    }
+
+    if (stdout_chunk.includes(paused_string)) {
+      results.is_paused = true
+    } else if (stdout_chunk.includes(unpaused_string)) {
+      results.is_paused = false
     }
   }
 }
