@@ -6,7 +6,6 @@ import Button from '../components/Button'
 import StartStopButton from '../components/StartStopButton'
 
 /**
- * 
  * @param {Object} props
  * @param {Socket} props.socket
  * @returns 
@@ -24,8 +23,10 @@ export default function ServerPage({user_token, socket}) {
 
   const is_running = minimal_entry?.is_running
   const is_online = minimal_entry?.is_online
-
-  console.log("is_running: "+is_running+" is_online: "+is_online)
+  const season = minimal_entry?.season
+  const day = minimal_entry?.day
+  const max_players = minimal_entry?.max_players
+  const cur_players = minimal_entry?.cur_players
 
   const messages_container = useRef(null)
 
@@ -125,8 +126,19 @@ export default function ServerPage({user_token, socket}) {
           <Console messages_container={messages_container} onConsoleSend={onSendCommand}/>
         </div>
       </div>
-      <div className='flex flex-col p-2
+      <div className='flex flex-col p-2 gap-y-4
         items-center justify-end w-full h-full'>
+        <div className='flex-col items-center justify-center w-full
+          p-2 border-2 border-secondary rounded-lg'>
+          <div className='flex items-start justify-start w-full'>
+            players: {cur_players}/{max_players}
+          </div>
+          <div className={`${season && day ? "" : "hidden"}
+            flex items-end justify-between w-full`}>
+            <div>season: {season}</div>
+            <div>day: {day}</div>
+          </div>
+        </div>
         <StartStopButton 
           cluster_id={cluster_id}
           is_running={is_running}
