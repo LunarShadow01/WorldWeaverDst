@@ -14,7 +14,8 @@ function validateStructure() {
     "clusters_dir": "",
     "jwt_secret": "",
     "jwt_secret_issued_date": "",
-    "users": []
+    "users": [],
+    "branch_update_marks": {}
   }
 
   if (!existsSync(data_file)) {

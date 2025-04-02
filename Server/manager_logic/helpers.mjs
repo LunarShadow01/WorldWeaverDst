@@ -1,10 +1,26 @@
 import os from 'node:os'
-import { readFileSync, existsSync, opendirSync, mkdirSync } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdir, access } from "node:fs";
+import { promisify } from 'node:util';
 import path from "node:path";
 import { parse as iniParse } from 'ini';
+import { constants as fs_consts } from 'node:fs';
 
 import { getDataKey } from '../data_writer.mjs';
 import { Cluster, Shard } from './server_objects.mjs';
+
+const mkdirAsync = promisify(mkdir)
+const exists = (test_path) => {
+  return new Promise((resolve, reject) => {
+    access(test_path, (err) => {
+      if (err) {
+        resolve(false)
+      } else {
+        resolve(true)
+      }
+    })
+
+  })
+}
 
 export class IdManager {
   static count = 0;
@@ -117,6 +133,10 @@ export function getPersistentStorageRoot() {
   return path.resolve(getDataKey("world_weaver_root"), "DoNotStarveTogether")
 }
 
+export function getBackupsRoot() {
+  return path.resolve(getDataKey("world_weaver_root"), "Backups")
+}
+
 export function getSteamCmd() {
   const steamcmd_dir = getDataKey("steamcmd_dir")
 
@@ -188,42 +208,55 @@ export function getShardNamesInCluster(cluster_path) {
   return shard_names
 }
 
-export function makeDefinedDirs() {
+export async function makeDefinedDirs() {
   const branches_data = getDataKey("branches_data")
   const persistent_storage_root = getPersistentStorageRoot()
+  const promises = []
   for (const branch_name in branches_data) {
     const install_dir = getBranchInstallDir(branch_name)
-    mkdirSync(install_dir, {
+    const install_promise = mkdirAsync(install_dir, {
       recursive: true
-    }, () => {})
+    })
 
     const conf_dir = path.resolve(
       persistent_storage_root, branch_name
     )
-    mkdirSync(conf_dir, {
+    const conf_promise = mkdirAsync(conf_dir, {
       recursive: true
     }, () => {})
+
+    const backups_dir = path.resolve(getBackupsRoot(), branch_name)
+    const backups_promise = mkdirAsync(backups_dir, {
+      recursive: true
+    }, () => {})
+
+    promises.push(install_promise, conf_promise, backups_promise)
   }
+  await Promise.all(promises)
 }
 
-export function checkDefinedDirs() {
+export async function checkDefinedDirs() {
   const branches_data = getDataKey("branches_data")
   const persistent_storage_root = getPersistentStorageRoot()
+  const promises = []
 
-  let allPathsExist = true
   for (const branch_name in branches_data) {
     const install_dir = getBranchInstallDir(branch_name)
-    allPathsExist &= existsSync(install_dir)
-
+    promises.push(exists(install_dir, fs_consts.F_OK))
+    
     const conf_dir = path.resolve(
       persistent_storage_root, branch_name
     )
-    allPathsExist &= existsSync(conf_dir)
-
-    if (!allPathsExist) {
-      break;
-    }
+    promises.push(exists(conf_dir, fs_consts.F_OK))
+    
+    const backups_dir = path.resolve(getBackupsRoot(), branch_name)
+    promises.push(exists(backups_dir, fs_consts.F_OK))
   }
 
-  return allPathsExist
+  const results = await Promise.all(promises)
+  const do_paths_exists = results.reduce((pre, cur) => {
+    return pre && cur
+  }, true)
+  
+  return do_paths_exists
 }

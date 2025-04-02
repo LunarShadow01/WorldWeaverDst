@@ -4,7 +4,7 @@ import path from "node:path"
 import { existsSync } from "node:fs"
 import Stream from "node:stream"
 
-import { 
+import {
   getBranchExecutable,
   getBranchInstallDir,
   getClusterConfig,
@@ -17,7 +17,7 @@ import {
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
-import { updateGame } from "./steamcmd.mjs"
+import { isUpdateQueued, updateGame } from "./steamcmd.mjs"
 
 export class Shard {
   constructor() {
@@ -247,10 +247,7 @@ export class Cluster {
   }
 
   hasNullrenderer() {
-    const install_dir = getBranchInstallDir(this.branch_name)
-    
-    const cwd = path.resolve(install_dir, "bin64")
-    const exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe") // todo, platform specific exe
+    const exe = getBranchExecutable(this.branch_name)
 
     return existsSync(exe)
   }
@@ -264,7 +261,7 @@ export class Cluster {
   }
 
   start() {
-    if (!this.hasNullrenderer()) {
+    if (!this.hasNullrenderer() || isUpdateQueued(this.branch_name)) {
       updateGame(this.branch_name).then(() => {
         for (const shard of this.shards) {
           shard.start()

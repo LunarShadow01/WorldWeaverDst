@@ -3,9 +3,9 @@ import { cluster_token } from "./manager_logic/constants.mjs";
 import { checkDefinedDirs, makeDefinedDirs } from "./manager_logic/helpers.mjs";
 import { Manager } from "./manager_logic/server_objects.mjs";
 
-function main() {
-  if (!checkDefinedDirs()) {
-    makeDefinedDirs()
+async function main() {
+  if (!await checkDefinedDirs()) {
+    await makeDefinedDirs()
   }
 
   const manager = new Manager(io, cluster_token)

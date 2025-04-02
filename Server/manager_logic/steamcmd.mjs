@@ -7,6 +7,8 @@ const game_branch = "public"
 const steamcmd_file = getSteamCmd()
 const branch_update_processes = {}
 
+const update_marks_key = "branch_update_marks"
+
 function getArgsForBranch(branch_name) {
   const install_dir = getBranchInstallDir(branch_name)
   const launch_args = `+force_install_dir ${install_dir} +login anonymous`
@@ -46,7 +48,10 @@ export function updateGame(branch) {
   // don't know whether a promise can have 2 resolves
   const promise = createUpdatePromise(process)
   promise.then(() => {
+    const branch_update_marks = getDataKey(update_marks_key)
     branch_update_processes[branch] = null
+    branch_update_marks[branch] = false
+    setDataKey(update_marks_key, branch_update_marks)
   })
   return createUpdatePromise(process)
 }
@@ -115,15 +120,16 @@ async function checkForUpdates() {
   const branches_data = extractBranchesData(app_data)
   const saved_branches_data = getDataKey("branches_data")
   /**@type {Object<string, boolean>} */ 
-  const update_marks = {}
+  const branch_update_marks = {}
 
   for (const branch_name in branches_data) {
     const branch_data = branches_data[branch_name]
     const build_id = branch_data.buildid // game version
     const time_updated = new Date(branch_data.timeupdated * 1000) // update time
     
-    const update_available = build_id > saved_branches_data[branch_name]?.build_id
-    update_marks[branch_name] = update_available
+    const old_version = saved_branches_data[branch_name]?.build_id
+    const update_available = build_id > (old_version ? old_version : -1)
+    branch_update_marks[branch_name] = update_available
     
     saved_branches_data[branch_name] = {
       build_id,
@@ -132,19 +138,23 @@ async function checkForUpdates() {
   }
 
   setDataKey("branches_data", saved_branches_data)
-
-  return update_marks
+  setDataKey(update_marks_key, branch_update_marks)
 }
 
-function startUpdatesIntervals() {
+export function startUpdatesInterval() {
   const check_interval = 5 * 60 * 1000 // 5 minutes
   setInterval(async () => {
-    const update_marks = await checkForUpdates()
-    for (const key in update_marks) {
-      const should_update = update_marks[key]
-      if (should_update) {
-        // mark all clusters of the branch to be updated
-      }
-    }
+    await checkForUpdates()
+    // for (const key in update_marks) {
+    //   const should_update = update_marks[key]
+    //   if (should_update) {
+    //     // mark all clusters of the branch to be updated
+    //   }
+    // }
   }, check_interval);
+}
+
+export function isUpdateQueued(branch_name) {
+  const branch_update_marks = getDataKey(update_marks_key)
+  return branch_update_marks[branch_name]
 }
