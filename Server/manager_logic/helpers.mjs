@@ -18,7 +18,6 @@ const exists = (test_path) => {
         resolve(true)
       }
     })
-
   })
 }
 
@@ -62,6 +61,8 @@ const rollback_sent_string = "Received world rollback request"
 const token_invalid_string = "E_INVALID_TOKEN"
 const token_expired_string = "E_EXPIRED_TOKEN"
 const update_data_string = "WorldWeaverData"
+const paused_string = "Sim paused"
+const unpaused_string = "Sim unpaused"
 
 /**
  * @param {String} stdout_chunk
@@ -103,11 +104,18 @@ export function handleShardOutput(cluster, shard, stdout_chunk) {
     // todo
   }
 
-  if (shard.is_master
-    && stdout_chunk.includes(update_data_string)) {
-    const world_data = extractWorldWeaverData(stdout_chunk)
+  if (shard.is_master) {
+    if (stdout_chunk.includes(update_data_string)) {
+      const world_data = extractWorldWeaverData(stdout_chunk)
 
-    cluster.onWorldDataUpdate(world_data)
+      cluster.onWorldDataUpdate(world_data)
+    }
+
+    if (stdout_chunk.includes(paused_string)) {
+      shard.is_paused = true
+    } else if (stdout_chunk.includes(unpaused_string)) {
+      shard.is_paused = false
+    }
   }
 }
 

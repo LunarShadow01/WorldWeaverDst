@@ -26,6 +26,8 @@ export class Shard {
     this.events = new Stream.EventEmitter()
     /**@type {Boolean} */
     this.is_online = false
+    /**@type {Boolean} */
+    this.is_paused = false
   }
 
   /**
@@ -298,6 +300,14 @@ export class Cluster {
     this.doMinEntryUpdate() // cluster shutdown send update
   }
 
+  pause() {
+    this.sendCommand(`SetServerPaused(true)`, true)
+  }
+  
+  unpause() {
+    this.sendCommand(`SetServerPaused(false)`, true)
+  }
+
   sendCommand(cmd, just_master = true) {
     if (just_master) {
       this.master?.sendCommand(cmd)
@@ -341,9 +351,9 @@ export class Cluster {
     }
     
     // temp
-    if (shard.is_master) {
-      console.log(data)
-    }
+    // if (shard.is_master) {
+    //   console.log(data)
+    // }
   }
 
   /**

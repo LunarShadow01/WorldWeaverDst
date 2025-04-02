@@ -14,6 +14,8 @@ import { Manager } from '../manager_logic/server_objects.mjs'
 
 const io = new Server(5000)
 
+let count = 0
+
 io.on("connection", (socket) => {
   socket.on("verify_token", ({user_token}) => {
     socket.emit("token_verified", {res: isValidToken(user_token)})
@@ -31,6 +33,10 @@ io.on("connection", (socket) => {
     }
 
     socket.join("entry_updates")
+  })
+
+  socket.on("disconnecting", (reason) => {
+    console.log((count++),": socket:",socket.id,"disconnected:",reason)
   })
 })
 

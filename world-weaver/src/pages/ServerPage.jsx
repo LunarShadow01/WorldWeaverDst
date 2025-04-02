@@ -1,5 +1,5 @@
 import React, { createElement, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
 import Button from '../components/Button'
@@ -11,8 +11,9 @@ import StartStopButton from '../components/StartStopButton'
  * @returns 
  */
 export default function ServerPage({user_token, socket}) {
+  const navigate = useNavigate()
   const params = useParams()
-  // const manager_ip = params.ip
+  const manager_ip = params.ip
   const cluster_id = params.id
 
   const max_console_messages = 50
@@ -128,9 +129,10 @@ export default function ServerPage({user_token, socket}) {
       </div>
       <div className='flex flex-col p-2 gap-y-4
         items-center justify-end w-full h-full'>
-        <div className='flex-col items-center justify-center w-full
-          p-2 border-2 border-secondary rounded-lg'>
-          <div className='flex items-start justify-start w-full'>
+        <div className={`${cur_players || (season && day) ? "" : "hidden"}
+          flex-col items-center justify-center w-full
+          p-2 border-2 border-secondary rounded-lg`}>
+          <div className={`flex items-start justify-start w-full ${cur_players ? "" : "hidden"}`}>
             players: {cur_players}/{max_players}
           </div>
           <div className={`${season && day ? "" : "hidden"}
@@ -150,6 +152,11 @@ export default function ServerPage({user_token, socket}) {
               : "startup"
             }
         </StartStopButton>
+        <Button onClick={() => {navigate(`/manager/${manager_ip}`)}}>
+            <div className='text-bold flex items-center justify-center'>
+             back to server list
+            </div>
+        </Button>
       </div>
       <div>
 

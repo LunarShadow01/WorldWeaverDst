@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, Routes, Route } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
 
@@ -20,7 +20,9 @@ export default function ManagerHub() {
   const params = useParams()
   const manager_ip = params.ip
   
-  const socket = io("ws://"+manager_ip)
+  const socket = useMemo(() => {
+    return io("ws://"+manager_ip)
+  }, [manager_ip])
   const [user_token, setUserToken] = useState("")
 
   useEffect(() => {
