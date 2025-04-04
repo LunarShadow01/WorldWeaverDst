@@ -1,5 +1,5 @@
 import React, { createElement, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
 import Button from '../components/Button'
@@ -11,6 +11,7 @@ import StartStopButton from '../components/StartStopButton'
  * @returns 
  */
 export default function ServerPage({user_token, socket}) {
+  const location = useLocation()
   const navigate = useNavigate()
   const params = useParams()
   const manager_ip = params.ip
@@ -85,30 +86,34 @@ export default function ServerPage({user_token, socket}) {
   }, [console_log, messages_container])
 
   useEffect(() => {
+    const onMinUpdate = ({id, entry}) => {
+      console.log(entry)
+      if (Number(cluster_id) === id) {
+        setMinimalEntry(entry)
+      }
+    }
+    
+    console.log("test")
+    if (socket.listeners("min_update").length <= 0) {
+      socket.on("min_update", onMinUpdate)
+    }
+  }, [minimal_entry, location])
+
+  useEffect(() => {
+    console.log("update")
     if (user_token !== "") {
       socket.emit("join_min_updates", {user_token})
       socket.emit("join_full_updates", {user_token, cluster_id})
-      socket.emit("push_minimal_update", {user_token, cluster_id})
+      setTimeout(() => {
+        socket.emit("push_minimal_update", {user_token, cluster_id})
+      }, 1000);
 
       socket.on("std_updates", ({shard, data}) => {
         const composed = `(${shard.shard_name}): ${data}`
         onConsoleUpdate(composed)
       })
-      setMinimalEntry({})
     }
-  }, [user_token, socket])
-
-  useEffect(() => {
-    const onMinUpdate = ({id, entry}) => {
-      if (Number(cluster_id) === id) {
-        setMinimalEntry(entry)
-      }
-    }
-
-    if (socket.listeners("min_update").length <= 0) {
-      socket.on("min_update", onMinUpdate)
-    }
-  }, [minimal_entry])
+  }, [user_token, socket, location])
 
   return (
     <div className='grid grid-cols-5 h-full'>
