@@ -1,22 +1,23 @@
 import os from 'node:os'
-import { readFileSync, existsSync, opendirSync, mkdir, access } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, write, readFile } from "node:fs";
 import { promisify } from 'node:util';
 import path from "node:path";
-import { parse as iniParse } from 'ini';
+import { parse as iniParse, stringify as iniStringify } from 'ini';
 import { constants as fs_consts } from 'node:fs';
 
 import { getDataKey } from '../data_writer.mjs';
 import { Cluster, Shard } from './server_objects.mjs';
-import createWorker from '../worker.mjs';
-import { isMainThread } from 'node:worker_threads';
+import { randomUUID } from 'node:crypto';
+// import createWorker from '../worker.mjs';
+// import { isMainThread } from 'node:worker_threads';
 
 // if (worker) {
 //   console.log(worker)
 // }
-let worker = null
-if (isMainThread) {
-  worker = await createWorker()
-}
+// let worker = null
+// if (isMainThread) {
+//   worker = await createWorker()
+// }
 // console.log(await createWorker())
 
 const mkdirAsync = promisify(mkdir)
@@ -250,6 +251,49 @@ export function getShardNamesInCluster(cluster_path) {
   dir.close()
   
   return shard_names
+}
+
+export function setWWClusterConfig(cluster_path, config_data) {
+  const config_path = path.resolve(cluster_path, "ww_config.ini")
+  const conf_string = iniStringify(config_data)
+  const promise = new Promise((resolve, reject) => {
+    writeFile(config_path, conf_string, {encoding: 'utf-8'}, (err) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    })
+  })
+  return promise
+}
+
+export async function getWWClusterConfig(cluster_path) {
+  const config_path = path.resolve(cluster_path, "ww_config.ini")
+  if (!await exists(config_path)) {
+    await setWWClusterConfig(cluster_path, {
+      MANAGER_DATA: {
+        uuid: randomUUID(),
+      }
+    })
+  }
+
+  const read_promise = new Promise((resolve, reject) => {
+    readFile(config_path, 'utf-8', (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(data)
+      }
+    })
+  })
+  try {
+    const data = await read_promise
+    const config_data = iniParse(data)
+    return config_data
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 export async function makeDefinedDirs() {

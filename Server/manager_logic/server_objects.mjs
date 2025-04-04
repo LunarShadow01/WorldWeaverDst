@@ -11,6 +11,7 @@ import {
   getClusterDirsInDir,
   getPersistentStorageRoot,
   getShardNamesInCluster,
+  getWWClusterConfig,
   handleShardOutput,
   IdManager,
   loadLuaFile } from "./helpers.mjs"
@@ -176,14 +177,14 @@ export class Shard {
 }
 
 export class Cluster {
-  constructor() {
+  constructor(id) {
     /**@type {Shard[]} */
     this.shards = []
     /**@type {Shard | null} */
     this.master = null
 
     /**@type {Number} */
-    this.id = IdManager.getNewID()
+    this.id = id
 
     /**@type {Number} */
     this.cur_players = 0
@@ -386,13 +387,16 @@ export class Manager {
     this.cluster_token = cluster_token
   }
 
-  registerCluster(
+  async registerCluster(
     cluster_path,
     cluster_token,
     branch_name,
     shard_codes,
   ) {
-    const cluster = new Cluster()
+    const ww_config = await getWWClusterConfig(cluster_path)
+    const uuid = ww_config.MANAGER_DATA.uuid
+
+    const cluster = new Cluster(uuid)
     .setup(
       shard_codes,
       cluster_path,
@@ -404,7 +408,7 @@ export class Manager {
     this.clusters[cluster.id] = cluster
   }
 
-  scanAndRegisterClusters() {
+  async scanAndRegisterClusters() {
     const branches_data = getDataKey("branches_data")
     for (const branch_name in branches_data) {
 
@@ -416,7 +420,7 @@ export class Manager {
         const shard_names =
           getShardNamesInCluster(cluster_path)
         
-        this.registerCluster(
+        await this.registerCluster(
           cluster_path,
           this.cluster_token,
           branch_name,

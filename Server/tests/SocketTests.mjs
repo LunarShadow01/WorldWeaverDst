@@ -16,6 +16,29 @@ const makeOncePromise = (socket, event) => {
   return promise
 }
 
+const testClusterUUID = (uuid) => {
+  try {
+    const chunks = uuid.split("-")
+    if (chunks.length !== 5) {
+      addFailedTest("uuid doesn't meet the uuid format")
+      return false
+    }
+
+    const results = chunks.map((chunk) => {
+      return typeof(chunk) === typeof("") && chunk.length > 0
+    })
+
+    const result = results.reduce((acc, cur) => {
+      return acc && cur
+    }, true)
+
+    return result
+  } catch (err) {
+    addFailedTest("encountered an error while testing cluster uuid")
+    return false
+  }
+}
+
 const testSocketIO = async () => {
   addLog("# client web socket tests: ")
   addLog("creating client web socket")
@@ -54,6 +77,16 @@ const testSocketIO = async () => {
     addPassedTest("got back servers from the manager as requested")
   }
 
+  addLog("testing clusters uuid")
+  for (const cluster of servers) {
+    const res = testClusterUUID(cluster.id)
+    if (res) {
+      addPassedTest(`uuid ${cluster.id} is valid`)
+    } else {
+      addFailedTest(`uuid ${cluster.id} is not valid`)
+    }
+  }
+
   addLog("subscribing to minimal updates room")
   socket.emit("join_min_updates", {user_token})
 
@@ -63,6 +96,8 @@ const testSocketIO = async () => {
   })
   
   const cluster = servers[Math.floor(Math.random() * servers.length)]
+
+
   addLog(`sending request to push a minimal update of cluster: ${JSON.stringify(cluster)}`)
   socket.emit("push_minimal_update", {user_token, cluster_id: cluster.id})
   const new_entry = await update_promise
