@@ -96,7 +96,6 @@ export function ioConnectManager(manager) {
     })
 
     socket.on("push_minimal_update", ({user_token, cluster_id}) => {
-
       const cluster = manager.clusters[cluster_id]
       if (cluster) {
         cluster.doMinEntryUpdate()

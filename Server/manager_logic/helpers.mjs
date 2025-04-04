@@ -1,5 +1,5 @@
 import os from 'node:os'
-import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, write, readFile } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, readFile } from "node:fs";
 import { promisify } from 'node:util';
 import path from "node:path";
 import { parse as iniParse, stringify as iniStringify } from 'ini';
@@ -33,28 +33,7 @@ const exists = (test_path) => {
   })
 }
 
-export class IdManager {
-  static count = 0;
-
-  static getNewID() {
-    IdManager.count++
-    return IdManager.count
-  }
-}
-
-export function getClusterConfig(cluster_dir) {
-  const conf_path = path.resolve(cluster_dir, "cluster.ini")
-  if (!existsSync(conf_path)) {
-    return null
-  }
-
-  const content = readFileSync(conf_path, {encoding: "utf-8"})
-  const conf = iniParse(content, {bracketedArray: true})
-
-  return conf
-
-}
-
+//#region shard output handling
 export function loadLuaFile(dirname, filename) {
   const file = path.resolve(dirname, "lua", filename)
   if (!existsSync(file)) {
@@ -151,7 +130,9 @@ export function parseShardOutput(shard, stdout_chunk) {
     }
   }
 }
+//#endregion
 
+//#region file system computing
 export function getBranchInstallDir(branch_name) {
   return path.resolve(getDataKey("world_weaver_root"), "GameFiles", branch_name)
 }
@@ -253,47 +234,17 @@ export function getShardNamesInCluster(cluster_path) {
   return shard_names
 }
 
-export function setWWClusterConfig(cluster_path, config_data) {
-  const config_path = path.resolve(cluster_path, "ww_config.ini")
-  const conf_string = iniStringify(config_data)
-  const promise = new Promise((resolve, reject) => {
-    writeFile(config_path, conf_string, {encoding: 'utf-8'}, (err) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve()
-      }
-    })
-  })
-  return promise
-}
-
-export async function getWWClusterConfig(cluster_path) {
-  const config_path = path.resolve(cluster_path, "ww_config.ini")
-  if (!await exists(config_path)) {
-    await setWWClusterConfig(cluster_path, {
-      MANAGER_DATA: {
-        uuid: randomUUID(),
-      }
-    })
+export function getClusterConfig(cluster_dir) {
+  const conf_path = path.resolve(cluster_dir, "cluster.ini")
+  if (!existsSync(conf_path)) {
+    return null
   }
 
-  const read_promise = new Promise((resolve, reject) => {
-    readFile(config_path, 'utf-8', (err, data) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(data)
-      }
-    })
-  })
-  try {
-    const data = await read_promise
-    const config_data = iniParse(data)
-    return config_data
-  } catch (err) {
-    console.error(err)
-  }
+  const content = readFileSync(conf_path, {encoding: "utf-8"})
+  const conf = iniParse(content, {bracketedArray: true})
+
+  return conf
+
 }
 
 export async function makeDefinedDirs() {
@@ -348,3 +299,71 @@ export async function checkDefinedDirs() {
   
   return do_paths_exists
 }
+//#endregion
+
+//#region world weaver independent cluster configurations
+/**
+ * @param {String} cluster_path 
+ * @param {Object} config_data 
+ * @returns {Promise<void>}
+ */
+export function setWWClusterConfig(cluster_path, config_data) {
+  const config_path = path.resolve(cluster_path, "ww_config.ini")
+  const conf_string = iniStringify(config_data)
+  const promise = new Promise((resolve, reject) => {
+    writeFile(config_path, conf_string, {encoding: 'utf-8'}, (err) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    })
+  })
+  return promise
+}
+
+/**
+ * @param {String} cluster_path 
+ * @returns {Object}
+ */
+export async function getWWClusterConfig(cluster_path) {
+  const config_path = path.resolve(cluster_path, "ww_config.ini")
+  if (!await exists(config_path)) {
+    await setWWClusterConfig(cluster_path, {
+      MANAGER_DATA: {
+        uuid: randomUUID(),
+      }
+    })
+  }
+
+  const read_promise = new Promise((resolve, reject) => {
+    readFile(config_path, 'utf-8', (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(data)
+      }
+    })
+  })
+  try {
+    const data = await read_promise
+    const config_data = iniParse(data)
+    return config_data
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+/**
+ * @param {Cluster} cluster
+ * @param {Object} entry
+ */
+export async function saveClusterEntry(cluster, entry) {
+  const config_data = await getWWClusterConfig(cluster.cluster_path)
+  config_data.entry = {}
+  config_data.entry.day = entry.day
+  config_data.entry.season = entry.season
+
+  await setWWClusterConfig(cluster.cluster_path, config_data)
+}
+//#endregion

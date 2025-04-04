@@ -6,14 +6,12 @@ import Stream from "node:stream"
 
 import {
   getBranchExecutable,
-  getBranchInstallDir,
   getClusterConfig,
   getClusterDirsInDir,
   getPersistentStorageRoot,
   getShardNamesInCluster,
   getWWClusterConfig,
   handleShardOutput,
-  IdManager,
   loadLuaFile } from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
@@ -84,13 +82,11 @@ export class Shard {
     const location_args = `-persistent_storage_root ${persistent_storage_root}`
       +` -conf_dir ${conf_dir}`
     
-    const install_dir = getBranchInstallDir(this.branch_name)
     const cluster_dir = this.cluster_dir
     const token = this.cluster_token
 
     const exe = getBranchExecutable(this.branch_name)
-    const cwd = path.dirname(exe) // path.resolve(install_dir, "bin64") // 
-    // let exe = path.resolve(cwd, "dontstarve_dedicated_server_nullrenderer_x64.exe")
+    const cwd = path.dirname(exe)
 
     const args = `${location_args} -cluster ${cluster_dir} -shard ${this.shard_name} -token ${token} -monitor_parent_process ${pid}`
     this.process = spawn(exe, args.split(" "), {
@@ -350,11 +346,6 @@ export class Cluster {
       this.io.to("full_updates/"+this.id)
       .emit("std_updates", {shard, data})
     }
-    
-    // temp
-    // if (shard.is_master) {
-    //   console.log(data)
-    // }
   }
 
   /**

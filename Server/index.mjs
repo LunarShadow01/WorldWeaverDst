@@ -17,7 +17,6 @@ async function main() {
   manager.scanAndRegisterClusters()
 
   ioConnectManager(manager)
-
 }
 
 main()

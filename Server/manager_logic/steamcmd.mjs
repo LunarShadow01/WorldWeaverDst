@@ -2,13 +2,13 @@ import { spawn } from 'node:child_process'
 import { getBranchInstallDir, getSteamCmd } from "./helpers.mjs"
 import { getDataKey, setDataKey } from '../data_writer.mjs'
 
-const dst_app_id = 343050
-const game_branch = "public"
+const dst_app_id = 343050 // dedicated server app (free to use with anonymous login)
 const steamcmd_file = getSteamCmd()
 const branch_update_processes = {}
 
 const update_marks_key = "branch_update_marks"
 
+//#region steamcmd launch shorthands
 export function getArgsForBranch(branch_name) {
   const install_dir = getBranchInstallDir(branch_name)
   const launch_args = `+force_install_dir ${install_dir} +login anonymous`
@@ -19,9 +19,6 @@ export function getArgsForBranch(branch_name) {
     update_args
   }
 }
-// const install_dir = getBranchInstallDir(game_branch)
-// const launch_args = `+force_install_dir ${install_dir} +login anonymous`
-// const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${game_branch}`
 
 export function runSteamCmd(cmd) {
   const process = spawn(steamcmd_file, `${cmd} +quit`.split(" "))
@@ -73,7 +70,9 @@ function createUpdatePromise(update_process) {
     })
   })
 }
+//#endregion
 
+//#region steamcmd app data api handling
 export async function getAppData() {
   const response = await fetch(
     `https://api.steamcmd.net/v1/info/${dst_app_id}`,
@@ -97,6 +96,7 @@ export async function getAppData() {
 export function extractBranchesData(app_data) {
   return app_data.data[dst_app_id].depots.branches
 }
+//#endregion
 
 /**
  * @returns {String[]}
@@ -110,6 +110,7 @@ function getAvailableBranches(branches_data) {
   return branches
 }
 
+//#region game updates automation
 /**
  * @function
  * @async
@@ -158,3 +159,4 @@ export function isUpdateQueued(branch_name) {
   const branch_update_marks = getDataKey(update_marks_key)
   return branch_update_marks[branch_name]
 }
+//#endregion
