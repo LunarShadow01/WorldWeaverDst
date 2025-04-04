@@ -178,7 +178,7 @@ export const verifyUser = (user_doc, password) => {
   if (user_doc === null || user_doc === undefined) {
     return false
   }
-
+  
   const password_hash = user_doc.password_hash
   return compareSync(password, password_hash)
 }

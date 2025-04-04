@@ -14,7 +14,7 @@ import { inspect } from 'util'
 // http_server.listen(5000)
 
 const io = new Server(5000)
-const debug = true
+const debug = false
 
 io.use((socket, next) => {
   socket.use(([event, args], next) => {
@@ -66,7 +66,7 @@ io.on("connection", (socket) => {
  */
 export function ioConnectManager(manager) {
   io.on("connection", (socket) => {
-    
+
     socket.use(([event, args], next) => {
       const cluster_id = args.cluster_id 
       const cluster = manager.clusters[cluster_id]
@@ -125,11 +125,6 @@ export function ioConnectManager(manager) {
     })
 
     socket.on("send_server_command", ({user_token, command, cluster_id}) => {
-      if (!isValidToken(user_token)) {
-        socket.emit("error", {message: "token invalid"})
-        return
-      }
-
       manager.sendCommandToCluster(command, cluster_id)
     })
   })

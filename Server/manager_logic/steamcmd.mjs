@@ -9,7 +9,7 @@ const branch_update_processes = {}
 
 const update_marks_key = "branch_update_marks"
 
-function getArgsForBranch(branch_name) {
+export function getArgsForBranch(branch_name) {
   const install_dir = getBranchInstallDir(branch_name)
   const launch_args = `+force_install_dir ${install_dir} +login anonymous`
   const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${branch_name}`
@@ -23,7 +23,7 @@ function getArgsForBranch(branch_name) {
 // const launch_args = `+force_install_dir ${install_dir} +login anonymous`
 // const update_args = `${launch_args} +app_update ${dst_app_id} -beta ${game_branch}`
 
-function runSteamCmd(cmd) {
+export function runSteamCmd(cmd) {
   const process = spawn(steamcmd_file, `${cmd} +quit`.split(" "))
   process.once("close", (code, signal) => {
     if (code !== 0) {
@@ -46,7 +46,6 @@ export function updateGame(branch) {
   const process = runSteamCmd(`${update_args}`)
   branch_update_processes[branch] = process
 
-  // don't know whether a promise can have 2 resolves
   const promise = createUpdatePromise(process)
   promise.then(() => {
     const branch_update_marks = getDataKey(update_marks_key)
@@ -75,7 +74,7 @@ function createUpdatePromise(update_process) {
   })
 }
 
-async function getAppData() {
+export async function getAppData() {
   const response = await fetch(
     `https://api.steamcmd.net/v1/info/${dst_app_id}`,
     {
@@ -95,7 +94,7 @@ async function getAppData() {
   return JSON.parse(json_string)
 }
 
-function extractBranchesData(app_data) {
+export function extractBranchesData(app_data) {
   return app_data.data[dst_app_id].depots.branches
 }
 

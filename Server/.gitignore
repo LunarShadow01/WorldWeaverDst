@@ -3,3 +3,4 @@ node_modules
 **/*secret*.txt
 **/users.json
 **/data.json
+**/output_log.txt
