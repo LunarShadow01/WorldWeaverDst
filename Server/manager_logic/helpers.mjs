@@ -234,18 +234,7 @@ export function getShardNamesInCluster(cluster_path) {
   return shard_names
 }
 
-export function getClusterConfig(cluster_dir) {
-  const conf_path = path.resolve(cluster_dir, "cluster.ini")
-  if (!existsSync(conf_path)) {
-    return null
-  }
 
-  const content = readFileSync(conf_path, {encoding: "utf-8"})
-  const conf = iniParse(content, {bracketedArray: true})
-
-  return conf
-
-}
 
 export async function makeDefinedDirs() {
   const branches_data = getDataKey("branches_data")

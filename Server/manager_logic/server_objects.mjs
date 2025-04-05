@@ -400,6 +400,7 @@ export class Manager {
   }
 
   async scanAndRegisterClusters() {
+    this.clusters = {} // clear all saved clusters for rescanning
     const branches_data = getDataKey("branches_data")
     for (const branch_name in branches_data) {
 
