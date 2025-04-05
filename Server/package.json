@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon ./index.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/Test.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -16,5 +16,8 @@
     "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.9",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

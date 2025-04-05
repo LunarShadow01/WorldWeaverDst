@@ -169,7 +169,6 @@ export const createUser = async (username, email, password) => {
 
   user.save()
 }
-
 /**
  * @param {AuthsUser | null} user_doc 
  * @param {String} password 
@@ -179,7 +178,7 @@ export const verifyUser = (user_doc, password) => {
   if (user_doc === null || user_doc === undefined) {
     return false
   }
-
+  
   const password_hash = user_doc.password_hash
   return compareSync(password, password_hash)
 }
@@ -214,7 +213,6 @@ export const getVerifiedUser = (email, password) => {
 
 export const generateUserToken = (email, password) => {
   const user_doc = getVerifiedUser(email, password)
-
   if (user_doc === null) {
     return null
   }
