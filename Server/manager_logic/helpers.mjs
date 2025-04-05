@@ -294,21 +294,11 @@ export async function checkDefinedDirs() {
 /**
  * @param {String} cluster_path 
  * @param {Object} config_data 
- * @returns {Promise<void>}
+ * @returns {void}
  */
 export function setWWClusterConfig(cluster_path, config_data) {
   const config_path = path.resolve(cluster_path, "ww_config.ini")
-  const conf_string = iniStringify(config_data)
-  const promise = new Promise((resolve, reject) => {
-    writeFile(config_path, conf_string, {encoding: 'utf-8'}, (err) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve()
-      }
-    })
-  })
-  return promise
+  writeConfigIni(config_path, config_data)
 }
 
 /**
@@ -325,18 +315,8 @@ export async function getWWClusterConfig(cluster_path) {
     })
   }
 
-  const read_promise = new Promise((resolve, reject) => {
-    readFile(config_path, 'utf-8', (err, data) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(data)
-      }
-    })
-  })
   try {
-    const data = await read_promise
-    const config_data = iniParse(data)
+    const config_data = readConfigIni(config_path)
     return config_data
   } catch (err) {
     console.error(err)
@@ -354,5 +334,54 @@ export async function saveClusterEntry(cluster, entry) {
   config_data.entry.season = entry.season
 
   await setWWClusterConfig(cluster.cluster_path, config_data)
+}
+//#endregion
+
+//#region config ini fs access
+/**
+ * @param {String} file_path 
+ * @returns {Object}
+ * @throws {Error}
+ */
+export async function readConfigIni(file_path) {
+  if (!await exists(file_path)) {
+    throw Error(`file does not exist at the specified path ${file_path}`)
+  }
+
+  const read_promise = new Promise((resolve, reject) => {
+    readFile(file_path, 'utf-8', (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(data)
+      }
+    })
+  })
+
+  const data = await read_promise
+  const config = iniParse(data)
+
+  return config
+}
+
+/**
+ * @param {String} file_path 
+ * @param {Object} config 
+ * @returns {void}
+ * @throws {Error}
+ */
+export async function writeConfigIni(file_path, config) {
+  const data = iniStringify(config)
+  const write_promise = new Promise((resolve, reject) => {
+    writeFile(file_path, data, (err) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    })
+  })
+
+  await write_promise
 }
 //#endregion
