@@ -385,3 +385,176 @@ export async function writeConfigIni(file_path, config) {
   await write_promise
 }
 //#endregion
+
+//#region cluster/shard config helpers
+const default_cluster_sections = {
+  "GAMEPLAY": {
+    game_mode: "survival",
+    max_players: 20,
+    pvp: false,
+    pause_when_empty: true,
+  },
+  "NETWORK": {
+    lan_only_cluster: false,
+    cluster_password: "", // no password
+    cluster_description: "a default cluster description",
+    cluster_name: "cluster name",
+    offline_cluster: false,
+    cluster_language: "en",
+  },
+  "MISC": {
+    console_enabled: true,
+  }, 
+  "SHARD": {
+    shard_enabled: true,
+    bind_ip: "127.0.0.1",
+    master_ip: "127.0.0.1",
+    master_port: 10888,
+    cluster_key: defaultPass,
+  },
+}
+
+const default_shard_sections = {
+  "NETWORK": {
+    server_port: 10998,
+  },
+
+  "SHARD": {
+    is_master: false,
+    name: Caves,
+    id: 2
+  },
+
+  "ACCOUNT": {
+    encode_user_path: true,
+  },
+
+  "STEAM": {
+    master_server_port: 27017,
+    authentication_port: 8767,
+  },
+}
+
+export class ConfigSection {
+  constructor(name) {
+    this.name = name
+    this.values = {}
+  }
+}
+
+export class IniConfig {
+  constructor() {
+    /**@type {ConfigSection[]} */
+    this.sections = []
+  }
+
+  static makeDefault() {
+    const config = new IniConfig()
+
+    return config
+  }
+
+  static async makeFromFile(file_path) {
+    const config_data = await readConfigIni(file_path)
+    const config = this.makeDefault()
+    for (const section_name in config_data) {
+      const section = config.getSection(section_name)
+      if (section === null) {
+        continue
+      }
+      for (const key in config_data[section_name]) {
+        section.values[key] = config_data[section_name][key]
+      }
+    }
+
+    return config
+  }
+
+  /**
+   * @param {String} section 
+   * @param {String} key 
+   * @param {any} new_value 
+   */
+  setConfigProperty(section, key, new_value) {
+    this.getSection(section)?.values[key] = new_value
+  }
+
+  /**
+   * @param {String} section 
+   * @param {String} key 
+   * @returns {undefined | any}
+   */
+  getConfigProperty(section, key) {
+    return this.getSection(section)?.values[key]
+  }
+
+  getSection(name) {
+    for (const section of this.sections) {
+      if (section.name === name) {
+        return section
+      }
+    }
+    return null
+  }
+  
+  compileConfig() {
+    const config_data = {}
+    for (const section of this.sections) {
+      config_data[section.name] = {}
+      for (const key of section.values) {
+        const value = section.values[key]
+      }
+    }
+
+    return config_data
+  }
+}
+
+export class ClusterConfig extends IniConfig {
+  constructor() {
+    super()
+  }
+  
+  /**
+   * @returns {ClusterConfig}
+   */
+  static makeDefault() {
+    const config = new ClusterConfig()
+    for (const name of default_cluster_sections) {
+      const section = new ConfigSection(name)
+      for (const key in default_cluster_sections[name]) {
+        const value = default_cluster_sections[name][key]
+        section.values[key] = value
+      }
+      config.sections.push(section) 
+    }
+
+    return config
+  }
+}
+
+export class ShardConfig extends IniConfig {
+  constructor() {
+    super()
+  }
+  
+  /**
+   * @returns {ClusterConfig}
+   */
+  static makeDefault() {
+    const config = new ClusterConfig()
+    for (const name of default_shard_sections) {
+      const section = new ConfigSection(name)
+      for (const key in default_cluster_sections[name]) {
+        const value = default_cluster_sections[name][key]
+        section.values[key] = value
+      }
+      config.sections.push(section) 
+    }
+
+    return config
+  }
+}
+//#endregion
+
+
