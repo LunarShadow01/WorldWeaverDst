@@ -1,7 +1,7 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { existsSync, mkdir, mkdirSync } from "node:fs"
+import { existsSync, mkdir, mkdirSync, rmSync } from "node:fs"
 import Stream from "node:stream"
 
 import {
@@ -367,6 +367,20 @@ export class Cluster {
 
     this.doMinEntryUpdate()
   }
+
+  delete() {
+    const cluster_config_path = path.resolve(this.cluster_path, "cluster.ini")
+    const master_config_path = path.resolve(this.cluster_path, "Master", "server.ini")
+    if (!(existsSync(this.cluster_path)
+      && existsSync(cluster_config_path)
+      && existsSync(master_config_path))) {
+      // if any of the files do not exists
+      throw Error(`could not verify the cluster path of this object ${this.cluster_path}
+      as represanting a valid cluster. delete operation aborted`)
+    }
+
+    rmSync(this.cluster_path, {recursive: true})
+  }
 }
 
 export class Manager {
@@ -426,10 +440,18 @@ export class Manager {
     }
   }
 
+  /**
+   * @param {uuid} id 
+   * @returns {Cluster | undefined}
+   */
+  getCluster(id) {
+    return this.clusters[id]
+  }
+
   getClusterEntries() {
     const entries = []
     for (const id in this.clusters) {
-      const cluster = this.clusters[id]
+      const cluster = this.getCluster(id)
       entries.push(cluster.getClusterEntry())
     }
 
