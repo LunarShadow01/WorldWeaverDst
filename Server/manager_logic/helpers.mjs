@@ -1,9 +1,9 @@
 import os from 'node:os'
-import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, readFile } from "node:fs";
+import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, readFile, watch, writeFileSync } from "node:fs";
+import { constants as fs_consts } from 'node:fs';
 import { promisify } from 'node:util';
 import path from "node:path";
 import { parse as iniParse, stringify as iniStringify } from 'ini';
-import { constants as fs_consts } from 'node:fs';
 
 import { getDataKey } from '../data_writer.mjs';
 import { Cluster, Shard } from './server_objects.mjs';
@@ -234,8 +234,6 @@ export function getShardNamesInCluster(cluster_path) {
   return shard_names
 }
 
-
-
 export async function makeDefinedDirs() {
   const branches_data = getDataKey("branches_data")
   const persistent_storage_root = getPersistentStorageRoot()
@@ -288,13 +286,39 @@ export async function checkDefinedDirs() {
   
   return do_paths_exists
 }
+
+/**
+ * @param {String | import('node:fs').PathLike} watch_path 
+ * @param {import('node:fs').WatchOptions} options 
+ * @param {Number} resting_duration 
+ * @param {(event: import('node:fs').WatchEventType, filename: String | null) => {}} callback 
+ */
+export function restingWatch(watch_path, options, resting_duration, callback) {
+  if (!existsSync(watch_path)) {
+    throw Error(`could not find fs path: "${watch_path}"`)
+  }
+  let timeout_task
+
+  watch(watch_path, options, (event, filename) => {
+    if (filename) {
+      if (timeout_task) {
+        clearTimeout(timeout_task)
+      }
+
+      timeout_task = setTimeout(() => {
+        callback(event, filename)
+      }, resting_duration);
+    }
+  })
+
+}
 //#endregion
 
 //#region world weaver independent cluster configurations
 /**
  * @param {String} cluster_path 
  * @param {Object} config_data 
- * @returns {void}
+ * @returns {Promise<any>}
  */
 export function setWWClusterConfig(cluster_path, config_data) {
   const config_path = path.resolve(cluster_path, "ww_config.ini")
@@ -305,10 +329,10 @@ export function setWWClusterConfig(cluster_path, config_data) {
  * @param {String} cluster_path 
  * @returns {Object}
  */
-export async function getWWClusterConfig(cluster_path) {
+export function getWWClusterConfig(cluster_path) {
   const config_path = path.resolve(cluster_path, "ww_config.ini")
-  if (!await exists(config_path)) {
-    await setWWClusterConfig(cluster_path, {
+  if (!existsSync(config_path)) {
+    setWWClusterConfig(cluster_path, {
       MANAGER_DATA: {
         uuid: randomUUID(),
       }
@@ -343,22 +367,12 @@ export async function saveClusterEntry(cluster, entry) {
  * @returns {Object}
  * @throws {Error}
  */
-export async function readConfigIni(file_path) {
-  if (!await exists(file_path)) {
+export function readConfigIni(file_path) {
+  if (!existsSync(file_path)) {
     throw Error(`file does not exist at the specified path ${file_path}`)
   }
 
-  const read_promise = new Promise((resolve, reject) => {
-    readFile(file_path, 'utf-8', (err, data) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve(data)
-      }
-    })
-  })
-
-  const data = await read_promise
+  const data = readFileSync(file_path, 'utf-8')
   const config = iniParse(data)
 
   return config
@@ -367,22 +381,12 @@ export async function readConfigIni(file_path) {
 /**
  * @param {String} file_path 
  * @param {Object} config 
- * @returns {void}
+ * @returns {Promise<any>}
  * @throws {Error}
  */
-export async function writeConfigIni(file_path, config) {
+export function writeConfigIni(file_path, config) {
   const data = iniStringify(config)
-  const write_promise = new Promise((resolve, reject) => {
-    writeFile(file_path, data, (err) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve()
-      }
-    })
-  })
-
-  await write_promise
+  writeFileSync(file_path, data, {encoding: 'utf-8'})
 }
 //#endregion
 
@@ -410,7 +414,7 @@ const default_cluster_sections = {
     bind_ip: "127.0.0.1",
     master_ip: "127.0.0.1",
     master_port: 10888,
-    cluster_key: defaultPass,
+    cluster_key: "defaultPass",
   },
 }
 
@@ -421,7 +425,7 @@ const default_shard_sections = {
 
   "SHARD": {
     is_master: false,
-    name: Caves,
+    name: "Caves",
     id: 2
   },
 
@@ -476,7 +480,9 @@ export class IniConfig {
    * @param {any} new_value 
    */
   setConfigProperty(section, key, new_value) {
-    this.getSection(section)?.values[key] = new_value
+    if (this.getSection(section)) {
+      this.getSection(section).values[key] = new_value
+    }
   }
 
   /**

@@ -1,10 +1,9 @@
 import io, { ioConnectManager } from "./backend_service/server.mjs";
 import { getDataKey } from "./data_writer.mjs";
 import { cluster_token } from "./manager_logic/constants.mjs";
-import { checkDefinedDirs, getPersistentStorageRoot, makeDefinedDirs } from "./manager_logic/helpers.mjs";
+import { checkDefinedDirs, getPersistentStorageRoot, makeDefinedDirs, restingWatch } from "./manager_logic/helpers.mjs";
 import { Manager } from "./manager_logic/server_objects.mjs";
 import { checkForUpdates } from "./manager_logic/steamcmd.mjs";
-import { watch } from 'node:fs'
 
 async function main() {
   if (Object.keys(getDataKey("branches_data")).length <= 0) {
@@ -16,7 +15,7 @@ async function main() {
 
   const manager = new Manager(io, cluster_token)
   manager.scanAndRegisterClusters()
-  watch(getPersistentStorageRoot(), {recursive: true}, (event, filename) => {
+  restingWatch(getPersistentStorageRoot(), {recursive: true}, 300, (event, filename) => {
     manager.scanAndRegisterClusters()
   })
 

@@ -1,18 +1,22 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { existsSync } from "node:fs"
+import { existsSync, mkdir, mkdirSync } from "node:fs"
 import Stream from "node:stream"
 
 import {
+  ClusterConfig,
   getBranchExecutable,
-  getClusterConfig,
+  getBranchInstallDir,
   getClusterDirsInDir,
   getPersistentStorageRoot,
   getShardNamesInCluster,
   getWWClusterConfig,
   handleShardOutput,
-  loadLuaFile } from "./helpers.mjs"
+  loadLuaFile, 
+  readConfigIni, 
+  ShardConfig,
+  writeConfigIni} from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
@@ -209,7 +213,7 @@ export class Cluster {
   ) {
     const cluster_dir = path.basename(cluster_path)
     
-    const config_data = getClusterConfig(cluster_path)
+    const config_data = readConfigIni(path.resolve(cluster_path, "cluster.ini"))
     this.name = config_data.NETWORK.cluster_name
     this.max_players = config_data.GAMEPLAY.max_players
 
@@ -438,5 +442,77 @@ export class Manager {
     if (cluster) {
       cluster.sendCommand(cmd, true)
     }
+  }
+
+  /**
+   * @function
+   * @description
+   * creates a new cluster
+   * under the specified branch
+   * with the specified shards
+   * the first shard will be designated the master shard
+   * other properties of the cluster
+   * may be modified after the fact
+   * this function will also randomize the cluster_key property
+   * @example
+   * ----
+   * @param {String} branch
+   * @param {String} name 
+   * @param {String} password 
+   * @param {{name: String, id: Number}[]} shards 
+   */
+  async createNewCluster(
+    branch,
+    name,
+    password,
+    shards
+  ) {
+    /**@type {Object.<string, {build_id: Number, time_updated: Date}>} */
+    const branches = getDataKey("branches_data")
+    if (!(branches.includes(branch))) {
+      throw Error(`specified branch "${branch}" does not exists`)
+    }
+    const initial_server_port = 10999
+    const cluster_dir = path.resolve(getPersistentStorageRoot(), branch, name)
+
+    if (existsSync(cluster_dir)) {
+      throw Error(`cluster with the directory name ${name} already exists, please use a different name`)
+    }
+
+    if (shards.length <= 0) {
+      throw Error(`must specify at least one shard. received an array: ${shards}`)
+    }
+
+    const cluster_config = ClusterConfig.makeDefault()
+    cluster_config.setConfigProperty("NETWORK", "cluster_name", name)
+    cluster_config.setConfigProperty("NETWORK", "cluster_password", password)
+    
+    /**@type {ShardConfig[]} */
+    const shard_configs = shards.map((shard, i) => {
+      const config = ShardConfig.makeDefault()
+      config.setConfigProperty("SHARD", "id", shard.id)
+      config.setConfigProperty("SHARD", "is_master", i === 0)
+      config.setConfigProperty("SHARD", "name", i === 0 ? "Master" : shard.name)
+      config.setConfigProperty("NETWORK", "server_port", (initial_server_port-i))
+
+      return config
+    })
+
+    mkdirSync(cluster_dir, {recursive: true})
+    for (const shard of shard_configs) {
+      mkdirSync(path.resolve(cluster_dir, shard.name), {recursive: true})
+    }
+
+    const promises = []
+    promises.push(
+      writeConfigIni(path.resolve(cluster_dir, "cluster.ini"), cluster_config.compileConfig())
+    )
+    for (const shard of shard_configs) {
+      promises.push(
+        writeConfigIni(path.resolve(cluster_dir, shard.name, "server.ini"), shard.compileConfig())
+      )
+    }
+
+    await new Promise.all(promises)
   }
 }
