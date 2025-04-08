@@ -100,9 +100,11 @@ export function ioConnectManager(manager) {
     })
 
     socket.on("push_minimal_update", ({cluster_id}) => {
-      const cluster = manager.clusters[cluster_id]
+      const cluster = manager.getCluster(cluster_id)
       if (cluster) {
         cluster.doMinEntryUpdate()
+      } else {
+        socket.emit("error", {err: inspect(Error("could not find requested cluster"))})
       }
     })
 
@@ -149,7 +151,7 @@ export function ioConnectManager(manager) {
        */
       async   ({branch, name, password, shards}) => {
         try {
-          await manager.createNewCluster(branch, name, password, shards)
+          manager.createNewCluster(branch, name, password, shards)
         } catch (err) {
           socket.emit("error", {err: inspect(err)})
         }

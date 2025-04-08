@@ -1,17 +1,19 @@
 import { io } from "socket.io-client";
 import addLog, { addFailedTest, addPassedTest } from "./TestLogger.mjs";
-import {inspect, inspect as utilsInspect} from 'node:util'
-import { Socket } from "socket.io";
+import {inspect} from 'node:util'
+import { EventEmitter } from 'node:events'
 
 const makeOncePromise = (socket, event) => {
   const promise = new Promise((resolve, reject) => {
+    const task = setTimeout(() => {
+      reject(Error("login request timed out"))
+    }, 5000);
+
     socket.once(event, (data) => {
+      clearTimeout(task)
       resolve(data)
     })
     
-    setTimeout(() => {
-      reject(Error("login request timed out"))
-    }, 5000);
   })
 
   return promise
@@ -124,7 +126,7 @@ const testManager = async () => {
   const servers2 = (await server_promise2).servers
   addLog(`received back server count: ${servers2?.length}`)
   
-  const test_server2 = servers.find((server) => {
+  const test_server2 = servers2.find((server) => {
     return server.name === testing_server_name
   })
 
@@ -140,6 +142,77 @@ const testManager = async () => {
   }
 
   addLog("start the testing cluster")
+
+  addLog("subscribing to minimal updates room")
+  socket.emit("join_min_updates", {user_token})
+  const events = new EventEmitter()
+
+  const update_promise = makeOncePromise(socket, "min_update")
+  update_promise.catch((err) => {
+    addFailedTest(`minimal update failed with err: ${err.message}`)
+  })
+
+  addLog(`sending request to push a minimal update of cluster: ${inspect(test_server2)}`)
+  socket.emit("push_minimal_update", {user_token, cluster_id: test_server2.id})
+  
+  const new_entry = await update_promise
+  addLog(`received back entry update ${JSON.stringify(new_entry)}`)
+
+  socket.on("min_update", 
+    ({entry, id}) => {
+      if (id !== test_server2.id) {
+        return
+      }
+
+      if (!entry.is_running && !entry.is_online) {
+        events.emit("done", null)
+      }
+
+      if (entry.is_running && !entry.is_online) {
+        addPassedTest(`test cluster process ran, updated by minimal entry: ${inspect(entry)}`)
+      }
+
+      if (entry.is_online) {
+        addPassedTest(`test cluster is online, shutting down\n received minimal entry: ${inspect(entry)}`)
+        socket.emit("send_server_action", {
+          user_token,
+          action: "stop",
+          cluster_id: test_server2.id
+        })
+      }
+  })
+
+  addLog("sending start cluster action")
+  socket.emit("send_server_action", {
+    user_token,
+    action: "start",
+    cluster_id: test_server2.id
+  })
+
+  const task = setTimeout(() => {
+    events.emit("done", Error("cluster did not close in time, terminating test"))
+  }, 5 * 60 * 1000);
+
+  try {
+    const res = await new Promise((resolve, reject) => {
+      events.once("done", (err) => {
+        clearTimeout(task)
+        if (err) {
+          reject(err)
+        } else {
+          resolve("cluster process finished successfully")
+        }
+      })
+    })
+    addPassedTest(res)
+  } catch (err) {
+    addFailedTest(err)
+  }
+
+  addLog("disconnecting client")
+  socket.disconnect(true)
+
+  addLog("end of cluster manager testing")
 }
 
 export default testManager
