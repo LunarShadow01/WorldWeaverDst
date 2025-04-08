@@ -48,8 +48,12 @@ io.on("connection", (socket) => {
   })
 
   socket.on("login", ({email, password}) => {
-    const user_token = generateUserToken(email, password)
-    socket.emit("new_token", {user_token})
+    try {
+      const user_token = generateUserToken(email, password)
+      socket.emit("new_token", {user_token})
+    } catch (err) {
+      socket.emit("error", err)
+    }
   })
 
   socket.on("join_min_updates", ({user_token}) => {
@@ -83,48 +87,72 @@ export function ioConnectManager(manager) {
       next()
     })
 
-    socket.on("get_servers", ({user_token}) => {
+    socket.on("get_servers", ({}) => {
       const servers = manager.getClusterEntries()
 
       socket.emit("server_entries", {servers})
     })
 
-    socket.on("join_full_updates", ({user_token, cluster_id}) => {
+    socket.on("join_full_updates", ({cluster_id}) => {
       if (manager.clusters[cluster_id]) {
         socket.join("full_updates/"+cluster_id)
       }
     })
 
-    socket.on("push_minimal_update", ({user_token, cluster_id}) => {
+    socket.on("push_minimal_update", ({cluster_id}) => {
       const cluster = manager.clusters[cluster_id]
       if (cluster) {
         cluster.doMinEntryUpdate()
       }
     })
 
-    socket.on("send_server_action", ({user_token, action, cluster_id}) => {
+    socket.on("send_server_action", ({action, cluster_id}) => {
       if (manager.clusters[cluster_id] === undefined) {
         return
       }
 
-      switch(action) {
-        case "start":
-          manager.clusters[cluster_id].start()
-          break;
-        case "stop":
-          manager.clusters[cluster_id].stop()
-          break;
-        case "save":
-          manager.sendCommandToCluster(`c_save()`, cluster_id)
-          break;
-        default:
-          manager.sendCommandToCluster(`print("action: \"${action}\" not recognized")`, cluster_id)
-          break;
+      try {
+        switch(action) {
+          case "start":
+            manager.getCluster(cluster_id).start()
+            break;
+          case "stop":
+            manager.getCluster(cluster_id).stop()
+            break;
+          case "save":
+            manager.sendCommandToCluster(`c_save()`, cluster_id)
+            break;
+          case "delete":
+            const cluster = manager.getCluster(cluster_id)
+            cluster.delete()
+            break;
+          default:
+            manager.sendCommandToCluster(`print("action: \"${action}\" not recognized")`, cluster_id)
+            break;
+        }
+      } catch (err) {
+        socket.emit("error", {err: inspect(err)})
       }
     })
 
     socket.on("send_server_command", ({user_token, command, cluster_id}) => {
       manager.sendCommandToCluster(command, cluster_id)
+    })
+
+    socket.on("create_cluster",
+      /**
+       * @param {Object} params
+       * @param {String} params.branch
+       * @param {String} params.name
+       * @param {String} params.password
+       * @param {{name: String, id: Number}[]} params.shards 
+       */
+      async   ({branch, name, password, shards}) => {
+        try {
+          await manager.createNewCluster(branch, name, password, shards)
+        } catch (err) {
+          socket.emit("error", {err: inspect(err)})
+        }
     })
   })
 }

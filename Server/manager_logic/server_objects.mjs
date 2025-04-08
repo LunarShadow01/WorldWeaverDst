@@ -213,9 +213,9 @@ export class Cluster {
   ) {
     const cluster_dir = path.basename(cluster_path)
     
-    const config_data = readConfigIni(path.resolve(cluster_path, "cluster.ini"))
-    this.name = config_data.NETWORK.cluster_name
-    this.max_players = config_data.GAMEPLAY.max_players
+    const config_data = ClusterConfig.makeFromFile(path.resolve(cluster_path, "cluster.ini"))
+    this.name = config_data.getConfigProperty("NETWORK", "cluster_name")
+    this.max_players = config_data.getConfigProperty("GAMEPLAY", "max_players")
 
     this.cluster_path = cluster_path
     this.cluster_token = cluster_token
@@ -438,6 +438,7 @@ export class Manager {
         )
       }
     }
+    this.io.emit("fs_scanned", ({message: "cluster rescan complete"}))
   }
 
   /**
@@ -476,14 +477,12 @@ export class Manager {
    * other properties of the cluster
    * may be modified after the fact
    * this function will also randomize the cluster_key property
-   * @example
-   * ----
    * @param {String} branch
    * @param {String} name 
    * @param {String} password 
    * @param {{name: String, id: Number}[]} shards 
    */
-  async createNewCluster(
+  createNewCluster(
     branch,
     name,
     password,
@@ -491,7 +490,7 @@ export class Manager {
   ) {
     /**@type {Object.<string, {build_id: Number, time_updated: Date}>} */
     const branches = getDataKey("branches_data")
-    if (!(branches.includes(branch))) {
+    if (!(Object.keys(branches).includes(branch))) {
       throw Error(`specified branch "${branch}" does not exists`)
     }
     const initial_server_port = 10999
@@ -522,19 +521,13 @@ export class Manager {
 
     mkdirSync(cluster_dir, {recursive: true})
     for (const shard of shard_configs) {
-      mkdirSync(path.resolve(cluster_dir, shard.name), {recursive: true})
+      mkdirSync(path.resolve(cluster_dir, shard.getConfigProperty("SHARD", "name")), {recursive: true})
     }
 
-    const promises = []
-    promises.push(
-      writeConfigIni(path.resolve(cluster_dir, "cluster.ini"), cluster_config.compileConfig())
-    )
+    writeConfigIni(path.resolve(cluster_dir, "cluster.ini"), cluster_config.compileConfig())
     for (const shard of shard_configs) {
-      promises.push(
-        writeConfigIni(path.resolve(cluster_dir, shard.name, "server.ini"), shard.compileConfig())
-      )
+      const shard_name = shard.getConfigProperty("SHARD", "name")
+      writeConfigIni(path.resolve(cluster_dir, shard_name, "server.ini"), shard.compileConfig())
     }
-
-    await new Promise.all(promises)
   }
 }

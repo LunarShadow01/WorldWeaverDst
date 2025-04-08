@@ -45,6 +45,10 @@ const testSocketIO = async () => {
   const socket = io("ws://localhost:5000")
   addLog("client web socket created")
 
+  socket.on("error", ({message}) => {
+    addFailedTest(message)
+  })
+
   const login_promise = makeOncePromise(socket, "new_token")
   login_promise.catch((err) => {
     addFailedTest(`login test failed with err: ${err.message}`)

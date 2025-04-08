@@ -185,14 +185,18 @@ export const verifyUser = (user_doc, password) => {
 
 /**
  * @param {String} email 
- * @returns {AuthsUser | undefined}
+ * @returns {AuthsUser}
  */
 export const getUserNoValidation = (email) => {
   const users = readUsers()
   const user = users.find((cur_user) => {
     return cur_user.email === email
   })
-  return user
+  if (user) {
+    return user
+  } else {
+    throw Error(`email ${email} is not associated with an existing user`)
+  }
 }
 
 /**
@@ -207,15 +211,12 @@ export const getVerifiedUser = (email, password) => {
   if (is_valid) {
     return user_doc
   } else {
-    return null
+    throw Error(`could not verify user credentials for user with email ${email}`)
   }
 }
 
 export const generateUserToken = (email, password) => {
   const user_doc = getVerifiedUser(email, password)
-  if (user_doc === null) {
-    return null
-  }
 
   const token_data = {
     username: user_doc.username,

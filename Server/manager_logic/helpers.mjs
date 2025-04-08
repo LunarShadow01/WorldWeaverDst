@@ -1,7 +1,7 @@
 import os from 'node:os'
 import { readFileSync, existsSync, opendirSync, mkdir, access, writeFile, readFile, watch, writeFileSync } from "node:fs";
 import { constants as fs_consts } from 'node:fs';
-import { promisify } from 'node:util';
+import { inspect, promisify } from 'node:util';
 import path from "node:path";
 import { parse as iniParse, stringify as iniStringify } from 'ini';
 
@@ -458,8 +458,8 @@ export class IniConfig {
     return config
   }
 
-  static async makeFromFile(file_path) {
-    const config_data = await readConfigIni(file_path)
+  static makeFromFile(file_path) {
+    const config_data = readConfigIni(file_path)
     const config = this.makeDefault()
     for (const section_name in config_data) {
       const section = config.getSection(section_name)
@@ -507,8 +507,9 @@ export class IniConfig {
     const config_data = {}
     for (const section of this.sections) {
       config_data[section.name] = {}
-      for (const key of section.values) {
+      for (const key in section.values) {
         const value = section.values[key]
+        config_data[section.name][key] = value
       }
     }
 
@@ -526,7 +527,7 @@ export class ClusterConfig extends IniConfig {
    */
   static makeDefault() {
     const config = new ClusterConfig()
-    for (const name of default_cluster_sections) {
+    for (const name in default_cluster_sections) {
       const section = new ConfigSection(name)
       for (const key in default_cluster_sections[name]) {
         const value = default_cluster_sections[name][key]
@@ -549,10 +550,10 @@ export class ShardConfig extends IniConfig {
    */
   static makeDefault() {
     const config = new ClusterConfig()
-    for (const name of default_shard_sections) {
+    for (const name in default_shard_sections) {
       const section = new ConfigSection(name)
-      for (const key in default_cluster_sections[name]) {
-        const value = default_cluster_sections[name][key]
+      for (const key in default_shard_sections[name]) {
+        const value = default_shard_sections[name][key]
         section.values[key] = value
       }
       config.sections.push(section) 
