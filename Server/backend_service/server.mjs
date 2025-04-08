@@ -137,7 +137,7 @@ export function ioConnectManager(manager) {
       }
     })
 
-    socket.on("send_server_command", ({user_token, command, cluster_id}) => {
+    socket.on("send_server_command", ({command, cluster_id}) => {
       manager.sendCommandToCluster(command, cluster_id)
     })
 
@@ -149,12 +149,21 @@ export function ioConnectManager(manager) {
        * @param {String} params.password
        * @param {{name: String, id: Number}[]} params.shards 
        */
-      async   ({branch, name, password, shards}) => {
+      async ({branch, name, password, shards}) => {
         try {
           manager.createNewCluster(branch, name, password, shards)
         } catch (err) {
           socket.emit("error", {err: inspect(err)})
         }
+    })
+
+    socket.on("backup_cluster", ({cluster_id}) => {
+      const promise = manager.autoBackupCluster(cluster_id) // temporary simplification
+      promise.catch((err) => {
+        socket.emit("error", {err: inspect(err)})
+      }).then(() => {
+        socket.emit("backup_complete")
+      })
     })
   })
 }

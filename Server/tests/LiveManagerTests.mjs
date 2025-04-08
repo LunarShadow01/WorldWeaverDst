@@ -6,14 +6,13 @@ import { EventEmitter } from 'node:events'
 const makeOncePromise = (socket, event) => {
   const promise = new Promise((resolve, reject) => {
     const task = setTimeout(() => {
-      reject(Error("login request timed out"))
-    }, 5000);
-
+      reject(Error("request timed out"))
+    }, 15 * 1000);
+    
     socket.once(event, (data) => {
       clearTimeout(task)
       resolve(data)
     })
-    
   })
 
   return promise
@@ -244,6 +243,16 @@ const testManager = async () => {
   } catch (err) {
     addFailedTest(err)
   }
+
+  addLog("testing backup functionality")
+  const backup_promise = makeOncePromise(socket, "backup_complete")
+  backup_promise.then(() => {
+    addPassedTest("backup test concluded successfully")
+  }).catch(() => {
+    addFailedTest("could not make backup")
+  })
+  socket.emit("backup_cluster", {user_token, cluster_id: test_server2.id})
+  await backup_promise
 
   addLog("disconnecting client")
   socket.disconnect(true)

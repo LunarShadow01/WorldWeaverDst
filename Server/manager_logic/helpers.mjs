@@ -33,6 +33,21 @@ const exists = (test_path) => {
   })
 }
 
+/**
+ * @param {Number} date_unix 
+ * @returns {String}
+ */
+export function formatDate(date_unix) {
+  const date = new Date(date_unix)
+  let hour = date.getHours()
+  hour = hour < 10 ? "0"+hour : hour
+  let minute = date.getMinutes()
+  minute = minute < 10 ? "0"+minute : minute
+  let date_string = ""
+  date_string += `${date.getDate()}/${date.getMonth()}/${date.getFullYear()}-${hour}:${minute}`
+  return date_string
+}
+
 //#region shard output handling
 export function loadLuaFile(dirname, filename) {
   const file = path.resolve(dirname, "lua", filename)
@@ -255,13 +270,13 @@ export async function makeDefinedDirs() {
       recursive: true
     }, () => {})
 
-    const backups_dir = path.resolve(getBackupsRoot(), branch_name)
-    const backups_promise = mkdirAsync(backups_dir, {
-      recursive: true
-    }, () => {})
-
-    promises.push(install_promise, conf_promise, backups_promise)
+    promises.push(install_promise, conf_promise)
   }
+  const backups_promise = mkdirAsync(getBackupsRoot(), {
+    recursive: true
+  }, () => {})
+  promises.push(backups_promise)
+
   await Promise.all(promises)
 }
 
@@ -278,10 +293,9 @@ export async function checkDefinedDirs() {
       persistent_storage_root, branch_name
     )
     promises.push(exists(conf_dir, fs_consts.F_OK))
-    
-    const backups_dir = path.resolve(getBackupsRoot(), branch_name)
-    promises.push(exists(backups_dir, fs_consts.F_OK))
   }
+  const backups_dir = path.resolve(getBackupsRoot())
+  promises.push(exists(backups_dir, fs_consts.F_OK))
 
   const results = await Promise.all(promises)
   const do_paths_exists = results.reduce((pre, cur) => {

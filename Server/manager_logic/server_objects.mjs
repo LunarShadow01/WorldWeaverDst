@@ -1,11 +1,13 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { access, existsSync, mkdir, mkdirSync, rmSync } from "node:fs"
+import { cp, existsSync, mkdir, mkdirSync, readFile, rmSync, writeFile } from "node:fs"
 import Stream from "node:stream"
 
 import {
   ClusterConfig,
+  formatDate,
+  getBackupsRoot,
   getBranchExecutable,
   getClusterDirsInDir,
   getPersistentStorageRoot,
@@ -21,6 +23,7 @@ import { dirname } from "./constants.mjs"
 import { Server, Socket } from "socket.io"
 import { getDataKey } from "../data_writer.mjs"
 import { isUpdateQueued, updateGame } from "./steamcmd.mjs"
+import EventEmitter from "node:events"
 
 export class Shard {
   constructor() {
@@ -462,9 +465,11 @@ export class Manager {
       }
     }
     this.io.emit("fs_scanned", ({message: "cluster rescan complete"}))
+    console.log("fs scan complete")
   }
 
   onFsChange() {
+    console.log("fs change detected")
     // for (const id in this.clusters) {
     //   const cluster = this.getCluster(id)
     //   saveClusterEntry(cluster, cluster.getClusterEntry())
@@ -586,5 +591,95 @@ export class Manager {
       const shard_name = shard.getConfigProperty("SHARD", "name")
       writeConfigIni(path.resolve(cluster_dir, shard_name, "server.ini"), shard.compileConfig())
     }
+  }
+
+  async autoBackupCluster(id) {
+    const backup_des = "this is an automated backup"
+    const backup_count_file = path.resolve(getBackupsRoot(), id, "count.txt")
+
+    const promise = new Promise((resolve, reject) => {
+      if (!existsSync(backup_count_file)) {
+        mkdir(path.resolve(getBackupsRoot(), id), {recursive: true}, () => {
+          writeFile(backup_count_file, "0", {encoding: "utf-8"}, () => {
+            const backup_name = "autobackup_0"
+            resolve(this.backupCluster(id, backup_name, backup_des))
+          })
+        })
+      } else {
+        return readFile(backup_count_file, {encoding: "utf-8"}, async (err, data) => {
+          if (err) {
+            reject(err)
+          } else {
+            let cur_count = parseInt(data)
+        
+            cur_count++
+            if (cur_count > 20) {
+              cur_count = 0
+            }
+
+            const backup_name = `autoback_${cur_count}`
+            writeFile(backup_count_file, ""+cur_count, () => {
+              resolve(this.backupCluster(id, backup_name, backup_des))
+            })
+          }
+        })
+      }
+    })
+
+    return await promise
+  }
+
+  /**
+   * @description
+   * create a backup of a cluster specified by the id
+   * with the provided name and appended notes
+   * returns a promise that resolves when the backup process is complete
+   * or rejects with an error if the backup process fails
+   * @param {String} id 
+   * @param {String} name 
+   * @param {String} notes 
+   * @returns {Promise<void>}
+   */
+  backupCluster(id, name, notes) {
+    const backups_dir = path.resolve(getBackupsRoot(), id, name)
+    const cluster = this.getCluster(id)
+    const entry = cluster.getClusterEntry()
+    let meta_content = ""
+    meta_content += "backup name: " + name + "\n\n"
+    for (const key in entry) {
+      meta_content += key.toString() + ": " + entry[key].toString() + "\n"
+    }
+    meta_content += "notes: " + notes + "\n"
+    meta_content += "created on (dd/mm/year-h:m): " + formatDate(Date.now()) + "\n"
+
+    const events = new EventEmitter()
+
+    mkdir(backups_dir, {recursive: true}, async () => {
+      await new Promise((resolve) => {
+        writeFile(
+          path.resolve(backups_dir, "meta.txt"),
+          meta_content,
+          resolve
+        )
+      })
+      cp(cluster.cluster_path, backups_dir,
+        {recursive: true, preserveTimestamps: true, force: true}, (err) => {
+          if (err) {
+            events.emit("backup_done", err)
+          } else {
+            events.emit("backup_done", null)
+          }
+        })
+    })
+
+    return new Promise((resolve, reject) => {
+      events.on("backup_done", (err) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
+    })
   }
 }
