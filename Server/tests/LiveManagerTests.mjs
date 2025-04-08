@@ -158,6 +158,7 @@ const testManager = async () => {
   const new_entry = await update_promise
   addLog(`received back entry update ${JSON.stringify(new_entry)}`)
 
+  let already_checked_running = false
   socket.on("min_update", 
     ({entry, id}) => {
       if (id !== test_server2.id) {
@@ -168,8 +169,9 @@ const testManager = async () => {
         events.emit("done", null)
       }
 
-      if (entry.is_running && !entry.is_online) {
+      if (entry.is_running && !entry.is_online && !already_checked_running) {
         addPassedTest(`test cluster process ran, updated by minimal entry: ${inspect(entry)}`)
+        already_checked_running = true
       }
 
       if (entry.is_online) {
@@ -192,6 +194,8 @@ const testManager = async () => {
   const task = setTimeout(() => {
     events.emit("done", Error("cluster did not close in time, terminating test"))
   }, 5 * 60 * 1000);
+
+  addFailedTest("*todo* test file system rescanning live as a cluster process is running")
 
   try {
     const res = await new Promise((resolve, reject) => {

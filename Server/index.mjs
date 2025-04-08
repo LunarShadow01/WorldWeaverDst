@@ -15,9 +15,6 @@ async function main() {
 
   const manager = new Manager(io, cluster_token)
   manager.scanAndRegisterClusters()
-  restingWatch(getPersistentStorageRoot(), {recursive: true}, 300, (event, filename) => {
-    manager.scanAndRegisterClusters()
-  })
 
   ioConnectManager(manager)
 }

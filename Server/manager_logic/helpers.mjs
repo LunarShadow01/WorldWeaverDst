@@ -356,6 +356,9 @@ export function getWWClusterConfig(cluster_path) {
  * @param {Object} entry
  */
 export function saveClusterEntry(cluster, entry) {
+  if (!exists(cluster.cluster_path)) {
+    return
+  }
   const config_data = getWWClusterConfig(cluster.cluster_path)
   config_data.entry = {}
   config_data.entry.day = entry.day

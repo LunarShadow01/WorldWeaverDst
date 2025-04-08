@@ -1,7 +1,7 @@
 import { pid } from "node:process"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import { existsSync, mkdir, mkdirSync, rmSync } from "node:fs"
+import { access, existsSync, mkdir, mkdirSync, rmSync } from "node:fs"
 import Stream from "node:stream"
 
 import {
@@ -13,6 +13,7 @@ import {
   getWWClusterConfig,
   handleShardOutput,
   loadLuaFile, 
+  restingWatch, 
   saveClusterEntry, 
   ShardConfig,
   writeConfigIni} from "./helpers.mjs"
@@ -395,6 +396,16 @@ export class Manager {
     this.clusters = {}
     this.io = io
     this.cluster_token = cluster_token
+    this.scanned_ids = []
+
+    for (const branch in getDataKey("branches_data")) {
+      // only scan the conf root for each branch without recursion
+      const conf_dir = path.resolve(getPersistentStorageRoot(), branch)
+      restingWatch(conf_dir, {recursive: false}, 1000,
+        (event, filename) => {
+        this.onFsChange()
+      })
+    }
   }
 
   async registerCluster(
@@ -406,6 +417,7 @@ export class Manager {
     const ww_config = await getWWClusterConfig(cluster_path)
     const uuid = ww_config.MANAGER_DATA.uuid
     const latest_entry = ww_config.entry
+    this.scanned_ids.push(uuid)
 
     if (this.hasCluster(uuid)) {
       return
@@ -453,13 +465,27 @@ export class Manager {
   }
 
   onFsChange() {
-    for (const id in this.clusters) {
-      const cluster = this.getCluster(id)
-      saveClusterEntry(cluster, cluster.getClusterEntry())
-    }
-
+    // for (const id in this.clusters) {
+    //   const cluster = this.getCluster(id)
+    //   saveClusterEntry(cluster, cluster.getClusterEntry())
+    // }
+    
     // this.clusters = {} // clear all saved clusters for rescanning
-    this.scanAndRegisterClusters()
+    this.scanned_ids = [] // reset scanned ids list
+    this.scanAndRegisterClusters().then(() => {
+      const registered_clusters_ids = Object.keys(this.clusters)
+  
+      const none_existent_clusters_ids = registered_clusters_ids.filter(
+        ((id) => {return !this.scanned_ids.includes(id)})
+      )
+  
+      for (const id of none_existent_clusters_ids) {
+        const cluster = this.getCluster(id)
+        cluster.stop()
+        this.clusters[id] = undefined
+        console.log(`remove ${id}: ${cluster.name}, represents a deleted / missing cluster`)
+      }
+    })
   }
 
   /**
