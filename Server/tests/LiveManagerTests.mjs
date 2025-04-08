@@ -42,6 +42,52 @@ const testClusterUUID = (uuid) => {
   }
 }
 
+const createTestCluster = (socket, user_token, name) => {
+  const creation_promise = makeOncePromise(socket, "fs_scanned")
+  addLog("attempting server creation")
+  socket.emit("create_cluster", {
+    user_token,
+    branch: "public",
+    name,
+    password: "SoSecure",
+    shards: [
+      {name: "Master", id: 1},
+      {name: "Caves", id: 2},
+    ]
+  })
+
+  return creation_promise
+}
+
+const getClusters = (socket, user_token) => {
+  addLog("get scanned servers from the manager")
+  const server_promise = makeOncePromise(socket, "server_entries")
+  server_promise.catch((err) => {
+    addFailedTest(`server entries fetching test failed with err: ${err.message}`)
+  })
+  
+  socket.emit("get_servers", {user_token})
+  return server_promise
+}
+
+const deleteCluster = (socket, user_token, server) => {
+  addLog(`found testing server ${server}`)
+    const scanned_promise = makeOncePromise(socket, "fs_scanned")
+    scanned_promise.catch((err) => {
+      console.log(err)
+    }).then(() => {
+      addPassedTest(`successfully deleted test server`)
+    })
+
+    socket.emit("send_server_action", {
+      user_token,
+      cluster_id: server.id,
+      action: "delete"
+    })
+
+    return scanned_promise
+}
+
 const testManager = async () => {
   addLog("# cluster manager tests: ")
   addLog("creating client web socket")
@@ -69,61 +115,29 @@ const testManager = async () => {
   const {user_token} = await login_promise
   addLog(`received user token, ${user_token}`)
 
-  addLog("get scanned servers from the manager")
-  const server_promise = makeOncePromise(socket, "server_entries")
-  server_promise.catch((err) => {
-    addFailedTest(`server entries fetching test failed with err: ${err.message}`)
-  })
-  
+  const mid_write_server_name = "TestingCluster2"
   const testing_server_name = "TestingCluster"
-  socket.emit("get_servers", {user_token})
-  const {servers} = await server_promise
+  const {servers} = await getClusters(socket, user_token)
   addLog(`received back server count: ${servers.length}`)
   
   const test_server = servers.find((server) => {
     return server.name === testing_server_name
   })
   
+  const fs_write_server = servers.find((server) => {
+    return server.name === mid_write_server_name
+  })
+  
   if (test_server) {
-    addLog(`found testing server ${test_server}`)
-    const scanned_promise = makeOncePromise(socket, "fs_scanned")
-    scanned_promise.catch((err) => {
-      console.log(err)
-    })
-
-    socket.emit("send_server_action", {
-      user_token,
-      cluster_id: test_server.id,
-      action: "delete"
-    })
-
-    await scanned_promise
-    addPassedTest(`successfully deleted test server`)
+    await deleteCluster(socket, user_token, test_server)
+  }
+  if (fs_write_server) {
+    await deleteCluster(socket, user_token, fs_write_server)
   }
 
-  const creation_promise = makeOncePromise(socket, "fs_scanned")
-  addLog("attempting server creation")
-  socket.emit("create_cluster", {
-    user_token,
-    branch: "public",
-    name: testing_server_name,
-    password: "SoSecure",
-    shards: [
-      {name: "Master", id: 1},
-      {name: "Caves", id: 2},
-    ]
-  })
+  await createTestCluster(socket, user_token, testing_server_name)
 
-  await creation_promise
-
-  addLog("get scanned servers from the manager")
-  const server_promise2 = makeOncePromise(socket, "server_entries")
-  server_promise2.catch((err) => {
-    addFailedTest(`server entries fetching test failed with err: ${err.message}`)
-  })
-
-  socket.emit("get_servers", {user_token})
-  const servers2 = (await server_promise2).servers
+  const servers2 = (await getClusters(socket, user_token)).servers
   addLog(`received back server count: ${servers2?.length}`)
   
   const test_server2 = servers2.find((server) => {
@@ -195,7 +209,25 @@ const testManager = async () => {
     events.emit("done", Error("cluster did not close in time, terminating test"))
   }, 5 * 60 * 1000);
 
-  addFailedTest("*todo* test file system rescanning live as a cluster process is running")
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve()
+    }, 5 * 1000);
+  })
+
+  addLog("testing the creation of a cluster while another cluster is running")
+  const fs_changed_promise = createTestCluster(socket, user_token, mid_write_server_name)
+
+  fs_changed_promise.then(async () => {
+    const mid_servers = (await getClusters(socket, user_token)).servers
+    if (mid_servers.find((server) => server.name === mid_write_server_name)) {
+      addPassedTest("successfully created a new cluster while another cluster is running")
+    } else {
+      addFailedTest("could not find the cluster created while another cluster was running after the file system changed")
+    }
+  }).catch(() => {
+    addFailedTest("error encountered during creation of cluster while another cluster is running")
+  })
 
   try {
     const res = await new Promise((resolve, reject) => {

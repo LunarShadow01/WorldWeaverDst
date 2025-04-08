@@ -481,9 +481,11 @@ export class Manager {
   
       for (const id of none_existent_clusters_ids) {
         const cluster = this.getCluster(id)
-        cluster.stop()
-        this.clusters[id] = undefined
-        console.log(`remove ${id}: ${cluster.name}, represents a deleted / missing cluster`)
+        if (cluster) {
+          cluster.stop()
+        }
+        delete this.clusters[id]
+        console.log(`remove ${id}: ${cluster?.name}, represents a deleted / missing cluster`)
       }
     })
   }

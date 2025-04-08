@@ -356,7 +356,7 @@ export function getWWClusterConfig(cluster_path) {
  * @param {Object} entry
  */
 export function saveClusterEntry(cluster, entry) {
-  if (!exists(cluster.cluster_path)) {
+  if (!existsSync(cluster.cluster_path)) {
     return
   }
   const config_data = getWWClusterConfig(cluster.cluster_path)
