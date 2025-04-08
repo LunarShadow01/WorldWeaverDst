@@ -617,7 +617,7 @@ export class Manager {
               cur_count = 0
             }
 
-            const backup_name = `autoback_${cur_count}`
+            const backup_name = `autobackup_${cur_count}`
             writeFile(backup_count_file, ""+cur_count, () => {
               resolve(this.backupCluster(id, backup_name, backup_des))
             })
@@ -650,7 +650,8 @@ export class Manager {
       meta_content += key.toString() + ": " + entry[key].toString() + "\n"
     }
     meta_content += "notes: " + notes + "\n"
-    meta_content += "created on (dd/mm/year-h:m): " + formatDate(Date.now()) + "\n"
+    const creation_date_string =  formatDate(Date.now())
+    meta_content += "created on (dd/mm/year-h:m): " + creation_date_string + "\n"
 
     const events = new EventEmitter()
 
@@ -665,19 +666,19 @@ export class Manager {
       cp(cluster.cluster_path, backups_dir,
         {recursive: true, preserveTimestamps: true, force: true}, (err) => {
           if (err) {
-            events.emit("backup_done", err)
+            events.emit("backup_done", err, null)
           } else {
-            events.emit("backup_done", null)
+            events.emit("backup_done", null, {id, name, time: creation_date_string})
           }
         })
     })
 
     return new Promise((resolve, reject) => {
-      events.on("backup_done", (err) => {
+      events.on("backup_done", (err, data) => {
         if (err) {
           reject(err)
         } else {
-          resolve()
+          resolve(data)
         }
       })
     })

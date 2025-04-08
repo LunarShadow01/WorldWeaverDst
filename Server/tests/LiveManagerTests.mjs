@@ -244,16 +244,26 @@ const testManager = async () => {
     addFailedTest(err)
   }
 
-  addLog("testing backup functionality")
-  const backup_promise = makeOncePromise(socket, "backup_complete")
-  backup_promise.then(() => {
-    addPassedTest("backup test concluded successfully")
-  }).catch(() => {
-    addFailedTest("could not make backup")
-  })
-  socket.emit("backup_cluster", {user_token, cluster_id: test_server2.id})
-  await backup_promise
-
+  addLog("testing backup functionality, with multiple backup calls")
+  addLog(`cluster uuid is: ${test_server2.id}`)
+  for (let i = 0; i<25; i++) {
+    addLog(`making backup number ${i} of the testing cluster`)
+    const backup_promise = makeOncePromise(socket, "backup_complete")
+    backup_promise.then(({id, name, time}) => {
+        const expected_name = `autobackup_${i % 21}`
+        const result_name = name
+        if (expected_name !== result_name) {
+          addFailedTest(`expected name and result name did not match, got instead: ${expected_name} -> ${result_name}`)
+        } else {
+          addPassedTest("backup test concluded successfully")
+        }
+      }).catch(() => {
+      addFailedTest("could not make backup")
+    })
+    socket.emit("backup_cluster", {user_token, cluster_id: test_server2.id})
+    await backup_promise
+  }
+  
   addLog("disconnecting client")
   socket.disconnect(true)
 

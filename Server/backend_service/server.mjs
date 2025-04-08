@@ -161,8 +161,8 @@ export function ioConnectManager(manager) {
       const promise = manager.autoBackupCluster(cluster_id) // temporary simplification
       promise.catch((err) => {
         socket.emit("error", {err: inspect(err)})
-      }).then(() => {
-        socket.emit("backup_complete")
+      }).then((data) => {
+        socket.emit("backup_complete", data)
       })
     })
   })
