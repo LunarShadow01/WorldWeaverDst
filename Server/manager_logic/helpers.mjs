@@ -66,7 +66,11 @@ function extractWorldWeaverData(stdout_chunk) {
     return value[0].split("=")[1]
   })
   const last_snippet = snippets[snippets.length - 1]
-  return JSON.parse(last_snippet, null, "")
+  if (last_snippet) {
+    return JSON.parse(last_snippet, null, "")
+  } else {
+    return {}
+  }
 }
 
 /**
@@ -351,13 +355,13 @@ export function getWWClusterConfig(cluster_path) {
  * @param {Cluster} cluster
  * @param {Object} entry
  */
-export async function saveClusterEntry(cluster, entry) {
-  const config_data = await getWWClusterConfig(cluster.cluster_path)
+export function saveClusterEntry(cluster, entry) {
+  const config_data = getWWClusterConfig(cluster.cluster_path)
   config_data.entry = {}
   config_data.entry.day = entry.day
   config_data.entry.season = entry.season
 
-  await setWWClusterConfig(cluster.cluster_path, config_data)
+  setWWClusterConfig(cluster.cluster_path, config_data)
 }
 //#endregion
 

@@ -7,14 +7,13 @@ import Stream from "node:stream"
 import {
   ClusterConfig,
   getBranchExecutable,
-  getBranchInstallDir,
   getClusterDirsInDir,
   getPersistentStorageRoot,
   getShardNamesInCluster,
   getWWClusterConfig,
   handleShardOutput,
   loadLuaFile, 
-  readConfigIni, 
+  saveClusterEntry, 
   ShardConfig,
   writeConfigIni} from "./helpers.mjs"
 import { dirname } from "./constants.mjs"
@@ -294,6 +293,8 @@ export class Cluster {
   }
 
   stop() {
+    saveClusterEntry(this, this.getClusterEntry())
+
     for (const shard of this.shards) {
       shard.stop()
     }
@@ -404,6 +405,11 @@ export class Manager {
   ) {
     const ww_config = await getWWClusterConfig(cluster_path)
     const uuid = ww_config.MANAGER_DATA.uuid
+    const latest_entry = ww_config.entry
+
+    if (this.hasCluster(uuid)) {
+      return
+    }
 
     const cluster = new Cluster(uuid)
     .setup(
@@ -414,16 +420,21 @@ export class Manager {
       this.io
     )
 
+    if (latest_entry) {
+      for (const key in latest_entry) {
+        cluster[key] = latest_entry[key]
+      }
+    }
+
     this.clusters[cluster.id] = cluster
   }
 
   async scanAndRegisterClusters() {
-    this.clusters = {} // clear all saved clusters for rescanning
     const branches_data = getDataKey("branches_data")
     for (const branch_name in branches_data) {
-
       const branch_conf_dir = path.resolve(getPersistentStorageRoot(), branch_name)
       const cluster_dirs = getClusterDirsInDir(branch_conf_dir)
+
       for (const cluster_dir of cluster_dirs) {
         const cluster_path =
           path.resolve(branch_conf_dir, cluster_dir)
@@ -439,6 +450,24 @@ export class Manager {
       }
     }
     this.io.emit("fs_scanned", ({message: "cluster rescan complete"}))
+  }
+
+  onFsChange() {
+    for (const id in this.clusters) {
+      const cluster = this.getCluster(id)
+      saveClusterEntry(cluster, cluster.getClusterEntry())
+    }
+
+    // this.clusters = {} // clear all saved clusters for rescanning
+    this.scanAndRegisterClusters()
+  }
+
+  /**
+   * @param {uuid} id 
+   * @returns {Boolean}
+   */
+  hasCluster(id) {
+    return Object.keys(this.clusters).includes(id)
   }
 
   /**
