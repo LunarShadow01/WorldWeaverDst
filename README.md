@@ -42,6 +42,5 @@ with the important field being the ip to the manager
 ## dev setup
 * inside both ./world-weaver and ./Server
 1) install depencencies with `npm i`
-2) start the dev client with `npm start`
-3) start the backend with `npm start`
+2) start the node process with `npm start`
 
