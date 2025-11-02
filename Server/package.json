@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon ./index.mjs",
-    "test": "node tests/Test.mjs"
+    "test": "node tests/Test.mjs",
+    "admin": "nodemon ./admin_service/server.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +13,8 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
     "ini": "^5.0.0",
     "nodemon": "^3.1.9",
     "socket.io": "^4.8.1"

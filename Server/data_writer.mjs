@@ -9,6 +9,7 @@ export default function validateStructure() {
   const base_data = {
     "example": "*default*",
     "steamcmd_dir": "",
+    "cluster_token": "",
     "world_weaver_root": path.resolve(os.homedir(), "WorldWeaverDST"),
     "branches_data": {},
     "game_files_dir": "",
@@ -16,7 +17,7 @@ export default function validateStructure() {
     "jwt_secret": "",
     "jwt_secret_issued_date": "",
     "users": [],
-    "branch_update_marks": {}
+    "branch_update_marks": {},
   }
 
   if (!existsSync(data_file)) {
@@ -62,5 +63,14 @@ export function hasDataKey(key) {
 export function setDataKey(key, value) {
   const data = readData()
   data[key] = value
+  writeData(data)
+}
+
+export function setDataKeys(pairs) {
+  const data = readData()
+  for (const key in pairs) {
+    const value = pairs[key]
+    data[key] = value
+  }
   writeData(data)
 }

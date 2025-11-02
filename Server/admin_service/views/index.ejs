@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/stylesheet.css">
+  <title>Admin console</title>
+</head>
+<body>
+  <div style="display: flex; gap: 0.5rem;">
+    <label>SteamCMD*: </label>
+    <input type="text" id="input_steamcmd">
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <label>Cluster token*: </label>
+    <input type="text" id="input_token">
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <label>Game files folder: </label>
+    <input type="text" id="input_gamefiles">
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <label>Saves folder: </label>
+    <input type="text" id="input_saves">
+  </div>
+  <div>
+    <h3 style="margin: 1px;">* indicate required fields for world weaver to function</h3>
+  </div>
+  <button id="update_button">Update</button>
+  <h2>Fields break down description:</h2>
+  <ul>
+    <li>
+      <div class="admin_description_item">
+        <h3>SteamCMD:</h3>
+        <p>path to SteamCMD executable file. installed on host system</p>
+        <p>required to install / update game files, and detect new updates</p>
+        <a href="https://developer.valvesoftware.com/wiki/SteamCMD#Downloading_SteamCMD">for installation instruction of SteamCMD</a>
+      </div>
+    </li>
+    <li>
+      <div class="admin_description_item">
+        <h3>Cluster token:</h3>
+        <p>A valid klei account cluster token</p>
+        <p>cluster tokens are used by the klei servers to authenticate servers</p>
+        <p>they also give admin to the account holder of the cluster token</p>
+        <p>a single token can be used on any number of servers together</p>
+        <p>you can get a token from one of your save files or</p>
+        <a href="https://accounts.klei.com/account/game/servers?game=DontStarveTogether">go to klei account website to get one</a>
+      </div>
+    </li>
+    <li>
+      <div class="admin_description_item">
+        <h3>Game files (optional):</h3>
+        <p>Path to the folder where the world weaver server will store all of your game versions</p>
+        <p>you may set it to your existing DST installation directory</p>
+        <p>however the world weaver server will automatically run updates or change files</p>
+        <p>it is best to pick a different location</p>
+      </div>
+    </li>
+    <li>
+      <div class="admin_description_item">
+        <h3>Saves folder (optional):</h3>
+        <p>Path to the folder where the world weaver server will store all your game saves</p>
+        <p>this can also be set to your existing klei saves folder</p>
+        <p>however note that the folder you choose will be scanned automatically for any save files</p>
+        <p>any valid save file found will be added to this manager's list of clusters</p>
+      </div>
+    </li>
+  </ul>
+
+  <script src="/js/requests.js"></script>
+</body>
+</html>

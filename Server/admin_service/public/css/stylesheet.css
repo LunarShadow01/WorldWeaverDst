@@ -1,0 +1,12 @@
+
+.admin_description_item {
+  padding-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.admin_description_item > * {
+  padding: 0px;
+  margin: 0px;
+}
