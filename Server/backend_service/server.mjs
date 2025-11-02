@@ -1,6 +1,6 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
-import { generateUserToken, isValidToken } from './auth.mjs'
+import { getUserValidate } from './auth.mjs'
 import { Manager } from '../manager_logic/server_objects.mjs'
 import { inspect } from 'util'
 
@@ -18,18 +18,21 @@ const debug = false
 
 io.use((socket, next) => {
   socket.use(([event, args], next) => {
-    if (event === "login" || event === "verify_token") {
-      next()
+    const pass_key = socket.handshake.auth.passkey
+    const user = getUserValidate(pass_key)
+    if (user == null) {
+      next(new Error("passkey invalid"))
+      return
     }
-    
-    const user_token = args.user_token
-    if (!isValidToken(user_token)) {
-      next(Error("cannot verify user json web token"))
-    } else {
-      next()
-    }
+    args.user = user
+    next()
   })
-  next()
+
+  socket.use(([event, args], next) => {
+    console.log(`${args.user.username}: has been validated and sent "${event}" event`)
+
+    next()
+  })
 
   socket.use(([event, ...args], next) => {
     if (debug) {
@@ -43,20 +46,7 @@ io.use((socket, next) => {
 let count = 0
 
 io.on("connection", (socket) => {
-  socket.on("verify_token", ({user_token}) => {
-    socket.emit("token_verified", {res: isValidToken(user_token)})
-  })
-
-  socket.on("login", ({email, password}) => {
-    try {
-      const user_token = generateUserToken(email, password)
-      socket.emit("new_token", {user_token})
-    } catch (err) {
-      socket.emit("error", err)
-    }
-  })
-
-  socket.on("join_min_updates", ({user_token}) => {
+  socket.on("join_min_updates", ({}) => {
     socket.join("entry_updates")
   })
 
