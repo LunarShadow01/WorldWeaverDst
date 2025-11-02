@@ -6,6 +6,7 @@ import ServerEntry from '../components/ServerEntry'
 import ManagerLogin from './ManagerLogin'
 import { getDataKey, hasDataKey, setDataKey, pass_keys_storage_key } from '../scripts/storage'
 import ServerPage from './ServerPage'
+import { doSocketCb } from '../scripts/socket'
 
 /**
  * @typedef {{
@@ -74,14 +75,14 @@ function HubMain({socket}) {
   const [server_entries, setServerEntries] = useState([])
 
   useEffect(() => {
-    if (socket) {
+    doSocketCb(socket, () => {
       socket.once("server_entries", ({servers}) => {
         setServerEntries(servers)
         socket.emit("join_min_updates")
       })
       
       socket.emit("get_servers")
-    }
+    })
   }, [socket])
   
   useEffect(() => {

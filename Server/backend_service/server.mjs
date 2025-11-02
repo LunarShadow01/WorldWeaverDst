@@ -17,19 +17,15 @@ const io = new Server(5000)
 const debug = false
 
 io.use((socket, next) => {
-  socket.use(([event, args], next) => {
-    const pass_key = socket.handshake.auth.pass_key
-    const user = getUserValidate(pass_key)
-    if (user == null) {
-      next(new Error("passkey invalid"))
-      return
-    }
-    args.user = user
-    next()
-  })
+  const pass_key = socket.handshake.auth.pass_key
+  const user = getUserValidate(pass_key)
+  if (user == null) {
+    next(new Error("passkey invalid"))
+    return
+  }
 
   socket.use(([event, args], next) => {
-    console.log(`${args.user.username}: has been validated and sent "${event}" event`)
+    console.log(`user "${user.username}": has been validated and sent "${event}" event`)
 
     next()
   })
@@ -41,12 +37,13 @@ io.use((socket, next) => {
 
     next()
   })
+  next()
 })
 
 let count = 0
 
 io.on("connection", (socket) => {
-  socket.on("join_min_updates", ({}) => {
+  socket.on("join_min_updates", () => {
     socket.join("entry_updates")
   })
 
@@ -62,7 +59,7 @@ export function ioConnectManager(manager) {
   io.on("connection", (socket) => {
 
     socket.use(([event, args], next) => {
-      const cluster_id = args.cluster_id 
+      const cluster_id = args?.cluster_id 
       const cluster = manager.clusters[cluster_id]
       if (cluster_id
         && cluster === undefined
@@ -77,7 +74,7 @@ export function ioConnectManager(manager) {
       next()
     })
 
-    socket.on("get_servers", ({}) => {
+    socket.on("get_servers", () => {
       const servers = manager.getClusterEntries()
 
       socket.emit("server_entries", {servers})

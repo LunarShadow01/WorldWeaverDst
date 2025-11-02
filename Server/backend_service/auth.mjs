@@ -9,7 +9,7 @@ const readUsers = () => {
   /**@type {AuthUser[]} */
   const users = []
   for (const user_data of getDataKey("users")) {
-    const user = new AuthUser({})
+    const user = new AuthUser()
     user.onLoad(user_data)
     users.push(user)
   }
@@ -35,7 +35,8 @@ export class AuthUser {
    * pass_key_hash: String,
    * }} param0 
    */
-  constructor(
+  
+  static new(
     username,
     pass_key
   ) {
@@ -71,8 +72,9 @@ export class AuthUser {
 
   static findVerified(pass_key) {
     const users = readUsers();
-    for (data of users) {
-      const user = new AuthUser().onLoad(data)
+    for (const data of users) {
+      const user = new AuthUser()
+      user.onLoad(data)
       if (compareSync(pass_key, user.pass_key_hash)) {
         return user
       }

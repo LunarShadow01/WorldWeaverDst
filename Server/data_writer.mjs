@@ -37,7 +37,7 @@ export default function validateStructure() {
   writeData(data)
   
   if (data.users.length == 0) {
-    new AuthUser("primary", "temp").save()
+    AuthUser.new("primary", "temp").save()
   }
 }
 
