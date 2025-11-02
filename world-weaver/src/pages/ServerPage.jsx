@@ -1,4 +1,4 @@
-import React, { createElement, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import Console from '../components/Console'
@@ -10,7 +10,7 @@ import StartStopButton from '../components/StartStopButton'
  * @param {Socket} props.socket
  * @returns 
  */
-export default function ServerPage({user_token, socket}) {
+export default function ServerPage({socket}) {
   const location = useLocation()
   const navigate = useNavigate()
   const params = useParams()

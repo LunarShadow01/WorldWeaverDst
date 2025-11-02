@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import os from "node:os"
+import { AuthUser } from './backend_service/auth.mjs'
 
 const data_file = path.resolve(".", "data.json")
 
-function validateStructure() {
+export default function validateStructure() {
   const base_data = {
     "example": "*default*",
     "steamcmd_dir": "",
@@ -32,8 +33,12 @@ function validateStructure() {
   }
 
   delete data.example
-
+  
   writeData(data)
+  
+  if (data.users.length == 0) {
+    new AuthUser("primary", "temp").save()
+  }
 }
 
 export function readData() {
@@ -59,5 +64,3 @@ export function setDataKey(key, value) {
   data[key] = value
   writeData(data)
 }
-
-validateStructure()

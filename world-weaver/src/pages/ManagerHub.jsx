@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client'
 
 import ServerEntry from '../components/ServerEntry'
 import ManagerLogin from './ManagerLogin'
-import { getDataKey, hasDataKey, setDataKey, tokens_storage_key } from '../scripts/storage'
+import { getDataKey, hasDataKey, setDataKey, pass_keys_storage_key } from '../scripts/storage'
 import ServerPage from './ServerPage'
 
 /**
@@ -20,29 +20,28 @@ export default function ManagerHub() {
   const params = useParams()
   const manager_ip = params.ip
   
+  const [pass_key, setPassKey] = useState("")
   const socket = useMemo(() => {
-    return io("ws://"+manager_ip)
-  }, [manager_ip])
-  const [user_token, setUserToken] = useState("")
-
-  useEffect(() => {
-    if (!hasDataKey(tokens_storage_key)) {
-      setDataKey(tokens_storage_key, {})
-    }
-
-    const tokens = getDataKey(tokens_storage_key)
-    if (!(tokens.hasOwnProperty(manager_ip))) {
-      navigate(`/manager/${manager_ip}/login`)
-    } else {
-      socket.once("token_verified", ({res}) => {
-        if (res) {
-          setUserToken(tokens[manager_ip])
-        } else {
-          navigate(`/manager/${manager_ip}/login`)
+    if (pass_key !== "") {
+      return io("ws://"+manager_ip, {
+        auth: {
+          pass_key: pass_key
         }
       })
-      socket.emit("verify_token",
-        {user_token: tokens[manager_ip]})
+    }
+    return null
+  }, [manager_ip, pass_key])
+  
+  useEffect(() => {
+    if (!hasDataKey(pass_keys_storage_key)) {
+      setDataKey(pass_keys_storage_key, {})
+    }
+
+    const pass_keys = getDataKey(pass_keys_storage_key)
+    if (!(pass_keys.hasOwnProperty(manager_ip))) {
+      navigate(`/manager/${manager_ip}/login`)
+    } else {
+      setPassKey(pass_keys[manager_ip])
     }
   }, [manager_ip])
 
@@ -50,8 +49,8 @@ export default function ManagerHub() {
     <div>
       <Routes>
         <Route path={`/`} element={<HubMain socket={socket}/>}></Route>
-        <Route path={`/login`} element={<ManagerLogin socket={socket} setUserToken={setUserToken}/>}></Route>
-        <Route path={`/cluster/:id`} element={<ServerPage socket={socket} user_token={user_token}/>}></Route>
+        <Route path={`/login`} element={<ManagerLogin/>}></Route>
+        <Route path={`/cluster/:id`} element={<ServerPage socket={socket}/>}></Route>
       </Routes>
     </div>
   )
@@ -75,16 +74,15 @@ function HubMain({socket}) {
   const [server_entries, setServerEntries] = useState([])
 
   useEffect(() => {
-    const tokens = getDataKey(tokens_storage_key)
-    const user_token = tokens[manager_ip]
-
-    socket.once("server_entries", ({servers}) => {
-      setServerEntries(servers)
-      socket.emit("join_min_updates", {user_token})
-    })
-    
-    socket.emit("get_servers", {user_token})
-  }, [manager_ip])
+    if (socket) {
+      socket.once("server_entries", ({servers}) => {
+        setServerEntries(servers)
+        socket.emit("join_min_updates")
+      })
+      
+      socket.emit("get_servers")
+    }
+  }, [socket])
   
   useEffect(() => {
     const onMinUpdate = ({id, entry}) => {
@@ -99,7 +97,7 @@ function HubMain({socket}) {
       setServerEntries(entries)
     }
 
-    if (socket.listeners("min_update").length <= 0) {
+    if (socket && socket.listeners("min_update").length <= 0) {
       socket.on("min_update", onMinUpdate)
     }
 
@@ -118,7 +116,7 @@ function HubMain({socket}) {
             cluster_entry={cluster_entry}
             manager_ip={manager_ip}
             socket={socket}
-            user_token={getDataKey(tokens_storage_key)[manager_ip]}
+            user_token={getDataKey(pass_keys_storage_key)[manager_ip]}
           />
         })}
       </div>

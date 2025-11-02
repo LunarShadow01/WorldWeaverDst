@@ -1,16 +1,15 @@
-import jwt from 'jsonwebtoken'
-import { compareSync, genSaltSync, hashSync } from 'bcrypt'
+import { compareSync, hashSync, genSaltSync } from 'bcrypt'
 import { webcrypto } from 'node:crypto';
 import { getDataKey, setDataKey } from '../data_writer.mjs';
 
 /**
- * @returns {AuthsUser[]}
+ * @returns {AuthUser[]}
  */
 const readUsers = () => {
-  /**@type {AuthsUser[]} */
+  /**@type {AuthUser[]} */
   const users = []
   for (const user_data of getDataKey("users")) {
-    const user = new AuthsUser({})
+    const user = new AuthUser({})
     user.onLoad(user_data)
     users.push(user)
   }
@@ -19,7 +18,7 @@ const readUsers = () => {
 }
 
 /**
- * @param {AuthsUser[]} users 
+ * @param {AuthUser[]} users 
  */
 const writeUsers = (users) => {
   const saved_users = []
@@ -29,21 +28,21 @@ const writeUsers = (users) => {
   setDataKey("users", saved_users)
 }
 
-class AuthsUser {
+export class AuthUser {
   /**
    * @param {{
    * username: String,
    * pass_key_hash: String,
    * }} param0 
    */
-  constructor({
+  constructor(
     username,
-    pass_key_hash,
-  }) {
+    pass_key
+  ) {
     /**@type {String} */
     this.username = username
     /**@type {String} */
-    this.pass_key_hash = pass_key_hash;
+    this.pass_key_hash = hashSync(pass_key, genSaltSync(10));
   }
 
   onSave() {
@@ -73,7 +72,7 @@ class AuthsUser {
   static findVerified(pass_key) {
     const users = readUsers();
     for (data of users) {
-      const user = new AuthsUser().onLoad(data)
+      const user = new AuthUser().onLoad(data)
       if (compareSync(pass_key, user.pass_key_hash)) {
         return user
       }
@@ -96,5 +95,5 @@ if (jwt_secret === "") {
 }
 
 export const getUserValidate = (pass_key) => {
-  return AuthsUser.findVerified(pass_key)
+  return AuthUser.findVerified(pass_key)
 }

@@ -18,7 +18,7 @@ const debug = false
 
 io.use((socket, next) => {
   socket.use(([event, args], next) => {
-    const pass_key = socket.handshake.auth.passkey
+    const pass_key = socket.handshake.auth.pass_key
     const user = getUserValidate(pass_key)
     if (user == null) {
       next(new Error("passkey invalid"))

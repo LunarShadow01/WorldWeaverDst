@@ -1,5 +1,5 @@
 
-export const tokens_storage_key = "world_weaver_tokens"
+export const pass_keys_storage_key = "world_weaver_pass_keys"
 
 function encodeData(data) {
   var json_string = JSON.stringify(data)

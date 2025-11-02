@@ -1,5 +1,5 @@
 import io, { ioConnectManager } from "./backend_service/server.mjs";
-import { getDataKey } from "./data_writer.mjs";
+import validateStructure, { getDataKey } from "./data_writer.mjs";
 import { cluster_token } from "./manager_logic/constants.mjs";
 import { checkDefinedDirs, getPersistentStorageRoot, makeDefinedDirs, restingWatch } from "./manager_logic/helpers.mjs";
 import { Manager } from "./manager_logic/server_objects.mjs";
@@ -15,6 +15,8 @@ async function main() {
 
   const manager = new Manager(io, cluster_token)
   manager.scanAndRegisterClusters()
+
+  validateStructure();
 
   ioConnectManager(manager)
 }

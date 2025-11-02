@@ -4,49 +4,21 @@ import { Socket } from 'socket.io-client'
 
 import InputField from '../components/InputField'
 import Button from '../components/Button'
-import { getDataKey, hasDataKey, setDataKey, tokens_storage_key } from '../scripts/storage'
+import { getDataKey, hasDataKey, setDataKey, pass_keys_storage_key } from '../scripts/storage'
 
-/**
- * @param {Object} props
- * @param {Socket} props.socket  
- * @returns 
- */
-export default function ManagerLogin({
-  socket,
-  setUserToken
-}) {
+export default function ManagerLogin() {
   const navigate = useNavigate()
   const params = useParams()
   const manager_ip = params.ip
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [pass_key, setPassKey] = useState("")
   
   const login = () => {
-    if (socket === undefined) {
-      console.log("socket undefined")
-      return
-    }
-    console.log("login,", socket)
-    socket.once("new_token", onLogin)
-    socket.emit("login", {email, password})
+    const pass_keys = getDataKey(pass_keys_storage_key)
+    pass_keys[manager_ip] = pass_key
+    setDataKey(pass_keys_storage_key, pass_keys)
+    navigate(`/manager/${manager_ip}`)
   }
-
-  const onLogin = ({user_token}) => {
-    if (user_token) {
-      if (!hasDataKey(tokens_storage_key)) {
-        setDataKey(tokens_storage_key, {})
-      }
-
-      const tokens = getDataKey(tokens_storage_key)
-      tokens[manager_ip] = user_token
-
-      setDataKey(tokens_storage_key, tokens)
-      setUserToken(user_token)
-      navigate("/manager/"+manager_ip)
-    }
-  }
-
   return (
     <div className='h-full w-full
       flex items-center justify-center
@@ -55,17 +27,10 @@ export default function ManagerLogin({
           w-fit p-2 gap-y-2 border-2 border-secondary rounded-lg'>
           <InputField
             default_value=''
-            type='email'
-            label='email'
-            placeholder='your login email'
-            setValue={setEmail}
-            />
-          <InputField
-            default_value=''
             type='text'
-            label='password'
-            placeholder='your login password'
-            setValue={setPassword}
+            label='pass key'
+            placeholder='your manager pass key'
+            setValue={setPassKey}
             />
           <div className='w-fit'>
             <Button onClick={login}>
