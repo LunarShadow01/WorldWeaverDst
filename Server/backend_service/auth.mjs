@@ -1,5 +1,4 @@
 import { compareSync, hashSync, genSaltSync } from 'bcrypt'
-import { webcrypto } from 'node:crypto';
 import { getDataKey, setDataKey } from '../data_writer.mjs';
 
 /**
@@ -81,19 +80,6 @@ export class AuthUser {
     }
     return null
   }
-}
-
-const issued_key = "jwt_secret_issued_date"
-const jwt_secret_key = "jwt_secret"
-let jwt_secret = getDataKey(jwt_secret_key)
-if (jwt_secret === "") {
-  const arr = webcrypto.getRandomValues(new Uint32Array(20))
-  for (const num of arr) {
-    jwt_secret += "" + num
-  }
-
-  setDataKey(jwt_secret_key, Buffer.from(jwt_secret).toString("base64"))
-  setDataKey(issued_key, Date.now())
 }
 
 export const getUserValidate = (pass_key) => {
