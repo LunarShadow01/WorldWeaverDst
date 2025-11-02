@@ -3,7 +3,6 @@ import { getBranchInstallDir, getSteamCmd } from "./helpers.mjs"
 import { getDataKey, setDataKey } from '../data_writer.mjs'
 
 const dst_app_id = 343050 // dedicated server app (free to use with anonymous login)
-const steamcmd_file = getSteamCmd()
 const branch_update_processes = {}
 
 const update_marks_key = "branch_update_marks"
@@ -21,7 +20,7 @@ export function getArgsForBranch(branch_name) {
 }
 
 export function runSteamCmd(cmd) {
-  const process = spawn(steamcmd_file, `${cmd} +quit`.split(" "))
+  const process = spawn(getSteamCmd(), `${cmd} +quit`.split(" "))
   process.once("close", (code, signal) => {
     if (code !== 0) {
       console.error("steamcmd exited with an error code: ", code, " by signal: ", signal)
