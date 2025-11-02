@@ -17,7 +17,7 @@ const readUsers = () => {
 }
 
 /**
- * @param {AuthUser[]} users 
+ * @param {AuthUser[]} users
  */
 const writeUsers = (users) => {
   const saved_users = []
