@@ -68,7 +68,7 @@ export default function ServerPage({socket}) {
   }
 
   const onSendCommand = (cmd) => {
-    socket.emit("send_server_command", {user_token, command: cmd, cluster_id})
+    socket.emit("send_server_command", {command: cmd, cluster_id})
   }
 
   useEffect(() => {
@@ -100,12 +100,11 @@ export default function ServerPage({socket}) {
   }, [minimal_entry, location])
 
   useEffect(() => {
-    console.log("update")
     if (user_token !== "") {
-      socket.emit("join_min_updates", {user_token})
-      socket.emit("join_full_updates", {user_token, cluster_id})
+      socket.emit("join_min_updates")
+      socket.emit("join_full_updates", {cluster_id})
       setTimeout(() => {
-        socket.emit("push_minimal_update", {user_token, cluster_id})
+        socket.emit("push_minimal_update", {cluster_id})
       }, 1000);
 
       socket.on("std_updates", ({shard, data}) => {

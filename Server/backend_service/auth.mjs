@@ -40,10 +40,10 @@ export class AuthUser {
     username,
     pass_key
   ) {
-    /**@type {String} */
-    this.username = username
-    /**@type {String} */
-    this.pass_key_hash = hashSync(pass_key, genSaltSync(10));
+    const user = new AuthUser()
+    user.username = username
+    user.pass_key_hash = hashSync(pass_key, genSaltSync(10));
+    return user
   }
 
   onSave() {
